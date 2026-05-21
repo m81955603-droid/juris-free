@@ -1,0 +1,50 @@
+<div class="shell" [class.collapsed]="sidebarCollapsed()">
+
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1M4.22 4.22l.707.707m12.02 12.02l.707.707M1 12h1m20 0h1M4.22 19.78l.707-.707M18.95 5.05l.707-.707M12 7a5 5 0 100 10A5 5 0 0012 7z"/>
+          </svg>
+        </div>
+        @if (!sidebarCollapsed()) {
+          <div class="logo-text">
+            <span class="logo-name">JURIS-FREE</span>
+            <span class="logo-sub">Bolivia</span>
+          </div>
+        }
+      </div>
+      <button class="collapse-btn" (click)="sidebarCollapsed.set(!sidebarCollapsed())" [title]="sidebarCollapsed() ? 'Expandir' : 'Contraer'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+        </svg>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      @for (item of navItems; track item.path) {
+        <a class="nav-item" [routerLink]="item.path" routerLinkActive="active" [title]="item.label">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="item.icon"/>
+          </svg>
+          @if (!sidebarCollapsed()) {
+            <span class="nav-label">{{ item.label }}</span>
+          }
+        </a>
+      }
+    </nav>
+
+    @if (!sidebarCollapsed()) {
+      <div class="sidebar-footer">
+        <div class="status-dot"></div>
+        <span class="status-text">Sistema activo</span>
+      </div>
+    }
+  </aside>
+
+  <main class="main-content">
+    <router-outlet />
+  </main>
+
+</div>

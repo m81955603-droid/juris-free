@@ -1,0 +1,192 @@
+<div class="repo-layout">
+
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      @if (view() !== 'home') {
+        <button class="back-btn" (click)="goHome()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+        </button>
+      }
+      <div>
+        <h1 class="page-title">Repositorio de Muestras</h1>
+        @if (stats()) {
+          <p class="page-sub">{{ stats().total_archivos | number }} archivos Word · {{ stats().total_mb }} MB · {{ stats().carpetas }} carpetas</p>
+        }
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="search-box" [class.active]="searchQuery">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input [(ngModel)]="searchQuery" (keydown)="onKeydown($event)" placeholder="Buscar en 5,737 muestras...">
+        @if (searchQuery) {
+          <button (click)="searchQuery=''; search()">×</button>
+        }
+      </div>
+      @if (view() === 'carpeta') {
+        <button class="btn-search" (click)="search()">Buscar</button>
+      } @else {
+        <button class="btn-search" (click)="globalSearch()">Buscar</button>
+      }
+    </div>
+  </header>
+
+  <div class="main-content">
+
+    <!-- HOME -->
+    @if (view() === 'home') {
+      <div class="home-view">
+        <div class="carpetas-grid">
+          @for (cat of carpetas(); track cat.nombre) {
+            <button class="carpeta-card" (click)="openCarpeta(cat)">
+              <div class="carpeta-icon">{{ cat.icono }}</div>
+              <div class="carpeta-info">
+                <h3 class="carpeta-nombre">{{ cat.categoria }}</h3>
+                <p class="carpeta-sub">{{ cat.nombre }}</p>
+                <p class="carpeta-count">{{ cat.total | number }} documentos</p>
+              </div>
+              <div class="carpeta-arrow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+              </div>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- LISTA DE MUESTRAS -->
+    @if (view() === 'carpeta') {
+      <div class="list-view">
+        <div class="list-header">
+          @if (selectedCarpeta()) {
+            <span class="list-cat-icon">{{ selectedCarpeta()!.icono }}</span>
+            <div>
+              <h2 class="list-title">{{ selectedCarpeta()!.categoria }}</h2>
+              <p class="list-sub">{{ totalResults() | number }} documentos{{ searchQuery ? ' para "' + searchQuery + '"' : '' }}</p>
+            </div>
+          } @else {
+            <div>
+              <h2 class="list-title">Resultados de busqueda</h2>
+              <p class="list-sub">{{ totalResults() | number }} resultados para "{{ searchQuery }}"</p>
+            </div>
+          }
+        </div>
+
+        @if (isLoading()) {
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Cargando documentos...</p>
+          </div>
+        } @else {
+          <div class="docs-list">
+            @for (doc of results(); track doc.id) {
+              <div class="doc-row">
+                <div class="doc-row-icon">📄</div>
+                <div class="doc-row-info">
+                  <p class="doc-row-nombre">{{ doc.nombre }}</p>
+                  <p class="doc-row-meta">
+                    {{ doc.subcarpeta || doc.carpeta }}
+                    · {{ formatSize(doc.tamanio) }}
+                  </p>
+                </div>
+                <div class="doc-row-actions">
+                  <button class="btn-download-sm" (click)="downloadOriginal(doc)" title="Descargar Word original">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Word
+                  </button>
+                  <button class="btn-ai-sm" (click)="openWithAI(doc)" title="Completar con IA">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    IA
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Paginacion -->
+          @if (totalPages() > 1) {
+            <div class="pagination">
+              <button class="page-btn" [disabled]="currentPage() === 1" (click)="search(currentPage() - 1)">‹</button>
+              @for (p of getPages(); track p) {
+                <button class="page-btn" [class.active]="p === currentPage()" (click)="search(p)">{{ p }}</button>
+              }
+              <button class="page-btn" [disabled]="currentPage() === totalPages()" (click)="search(currentPage() + 1)">›</button>
+              <span class="page-info">Pag. {{ currentPage() }} de {{ totalPages() }}</span>
+            </div>
+          }
+        }
+      </div>
+    }
+
+    <!-- IA COMPLETE -->
+    @if (view() === 'ai-complete') {
+      <div class="ai-view">
+        <div class="ai-header">
+          <button class="btn-ghost" (click)="backToCarpeta()">← Volver</button>
+          <div>
+            <h2 class="ai-title">Completar con IA</h2>
+            <p class="ai-sub">{{ selectedMuestra()?.nombre }}</p>
+          </div>
+        </div>
+
+        @if (!aiResult()) {
+          <div class="ai-form">
+            <label class="field-label">Describe los datos especificos del documento</label>
+            <p class="field-hint">Indica las partes, fechas, montos, hechos y cualquier dato especifico que necesitas en el documento</p>
+            <textarea
+              class="ai-textarea"
+              [(ngModel)]="aiInstructions"
+              [placeholder]="'Ej: Completar para ' + (selectedMuestra()?.nombre || 'este documento') + '. Indicar: partes involucradas con CI, fechas, montos, ciudad, y cualquier dato especifico del caso...'"
+              rows="6">
+            </textarea>
+            <button class="btn-generate" (click)="completeWithAI()" [disabled]="isGenerating() || !aiInstructions.trim()">
+              @if (isGenerating()) {
+                <div class="btn-spinner"></div>
+                Generando documento...
+              } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Generar con IA
+              }
+            </button>
+          </div>
+        } @else {
+          <div class="ai-result">
+            <div class="result-toolbar">
+              <button class="btn-ghost" (click)="aiResult.set(''); aiInstructions = ''">Regenerar</button>
+              <div class="download-btns">
+                <button class="btn-dl word" (click)="downloadAiWord()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  Descargar Word
+                </button>
+                <button class="btn-dl pdf" (click)="downloadAiPdf()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                  </svg>
+                  Descargar PDF
+                </button>
+              </div>
+            </div>
+            <div class="result-doc">
+              <div class="doc-content" [innerHTML]="renderMarkdown(aiResult())"></div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+  </div>
+</div>

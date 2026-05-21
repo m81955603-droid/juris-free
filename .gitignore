@@ -1,0 +1,18 @@
+# Python
+backend/venv/
+**/__pycache__/
+*.pyc
+.env
+
+# Muestras (5737 docs, demasiado pesado para GitHub)
+backend/muestras/
+muestras/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Sistema
+.DS_Store
+Thumbs.db

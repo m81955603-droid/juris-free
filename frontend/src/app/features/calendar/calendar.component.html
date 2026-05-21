@@ -1,0 +1,160 @@
+<div class="cal-wrap">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <h3>⚠️ Próximos 7 días</h3>
+    <div *ngIf="vencimientos().length===0" class="side-empty">Sin vencimientos</div>
+    <div *ngFor="let ev of vencimientos()" class="venc-row"
+         [style.border-left-color]="colorTipo(ev.tipo)">
+      <p>{{ ev.titulo }}</p>
+      <small>{{ ev.fecha_inicio | date:'dd/MM' }} • {{ ev.hora }}</small>
+    </div>
+    <hr/>
+    <button (click)="vista.set('plazo')" class="side-btn">🧮 Calcular Plazo</button>
+    <button (click)="vista.set('nuevo')" class="side-btn primary">+ Nuevo Evento</button>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ── CABECERA MES ── -->
+    <div class="cal-head" *ngIf="vista()==='mes' || vista()==='lista'">
+      <button (click)="navMes(-1)" class="nav">‹</button>
+      <h2>{{ meses[mesActual()-1] }} {{ anioActual() }}</h2>
+      <button (click)="navMes(1)"  class="nav">›</button>
+      <div class="tabs">
+        <button [class.active]="vista()==='mes'"   (click)="vista.set('mes')">Mes</button>
+        <button [class.active]="vista()==='lista'" (click)="vista.set('lista')">Lista</button>
+      </div>
+    </div>
+
+    <!-- ── VISTA MES ── -->
+    <div class="cal-grid" *ngIf="vista()==='mes'">
+      <div class="dh" *ngFor="let d of ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']">{{ d }}</div>
+      <ng-container *ngFor="let dia of diasMes()">
+        <div *ngIf="dia===null" class="dc empty"></div>
+        <div *ngIf="dia!==null" class="dc" [class.hoy]="esHoy(dia.num)">
+          <span class="dn">{{ dia.num }}</span>
+          <div *ngFor="let ev of dia.eventos.slice(0,3)" class="ec"
+               [style.background]="colorTipo(ev.tipo)" [title]="ev.titulo">
+            {{ ev.hora }} {{ ev.titulo | slice:0:18 }}{{ ev.titulo.length>18?'…':'' }}
+          </div>
+          <div *ngIf="dia.eventos.length>3" class="ec-more">+{{ dia.eventos.length-3 }}</div>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- ── VISTA LISTA ── -->
+    <div class="lista" *ngIf="vista()==='lista'">
+      <div *ngIf="cargando()" class="loading">Cargando…</div>
+      <div *ngFor="let ev of eventos()" class="ev-row" [class.done]="ev.completado">
+        <div class="ev-bar" [style.background]="colorTipo(ev.tipo)"></div>
+        <div class="ev-data">
+          <p class="ev-tit">{{ ev.titulo }}</p>
+          <small>{{ ev.fecha_inicio | date:'dd/MM/yyyy' }} • {{ ev.hora }} • {{ ev.tipo }}</small>
+          <p *ngIf="ev.descripcion" class="ev-desc">{{ ev.descripcion }}</p>
+        </div>
+        <button *ngIf="!ev.completado" (click)="completar(ev.id)" class="btn-check">✓</button>
+      </div>
+      <p *ngIf="!cargando() && eventos().length===0" class="empty-txt">Sin eventos este mes.</p>
+    </div>
+
+    <!-- ── NUEVO EVENTO ── -->
+    <div class="panel-form" *ngIf="vista()==='nuevo'">
+      <div class="ph">
+        <button (click)="vista.set('mes')" class="btn-back">← Volver</button>
+        <h2>Nuevo Evento</h2>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="guardar()" class="ev-form">
+        <div class="fg full">
+          <label>Título *</label>
+          <input formControlName="titulo" placeholder="Audiencia preliminar…"/>
+        </div>
+        <div class="fg">
+          <label>Fecha *</label>
+          <input type="date" formControlName="fecha_inicio"/>
+        </div>
+        <div class="fg">
+          <label>Hora</label>
+          <input type="time" formControlName="hora"/>
+        </div>
+        <div class="fg">
+          <label>Tipo</label>
+          <select formControlName="tipo">
+            <option *ngFor="let t of tipos" [value]="t">{{ t | titlecase }}</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Color</label>
+          <input type="color" formControlName="color"/>
+        </div>
+        <div class="fg full">
+          <label>Descripción</label>
+          <textarea formControlName="descripcion" rows="2"></textarea>
+        </div>
+        <div class="f-actions">
+          <button type="button" (click)="vista.set('mes')" class="btn-sec">Cancelar</button>
+          <button type="submit" [disabled]="form.invalid || cargando()" class="btn-pri">
+            {{ cargando() ? 'Guardando…' : '💾 Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ── CALCULAR PLAZO ── -->
+    <div class="panel-form" *ngIf="vista()==='plazo'">
+      <div class="ph">
+        <button (click)="vista.set('mes')" class="btn-back">← Volver</button>
+        <h2>⚖️ Plazos Procesales Bolivianos</h2>
+      </div>
+      <form [formGroup]="plazoForm" (ngSubmit)="calcularPlazo()" class="ev-form">
+        <div class="fg">
+          <label>Tipo de plazo</label>
+          <select formControlName="tipo_plazo">
+            <option *ngFor="let p of plazosList" [value]="p">
+              {{ p.replace('_',' ') | titlecase }}
+            </option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Fecha de inicio</label>
+          <input type="date" formControlName="fecha_inicio"/>
+        </div>
+        <div class="f-actions">
+          <button type="submit" class="btn-pri">Calcular</button>
+        </div>
+      </form>
+
+      <div *ngIf="resultadoPlazo()" class="resultado">
+        <h3>Resultado del cálculo</h3>
+        <dl>
+          <dt>Norma</dt>          <dd>{{ resultadoPlazo().norma }}</dd>
+          <dt>Días hábiles</dt>   <dd>{{ resultadoPlazo().dias_habiles }}</dd>
+          <dt>Fecha de vence</dt> <dd class="vence">{{ resultadoPlazo().fecha_vence | date:'dd/MM/yyyy' }}</dd>
+          <dt>Días restantes</dt>
+          <dd [class.urgente]="resultadoPlazo().dias_quedan <= 3">
+            {{ resultadoPlazo().dias_quedan }} días
+          </dd>
+        </dl>
+        <button (click)="agregarEventoPlazo()" class="btn-pri mt">
+          📅 Agregar al calendario
+        </button>
+      </div>
+
+      <div class="tabla-ref">
+        <h3>Tabla de referencia</h3>
+        <table>
+          <thead><tr><th>Plazo</th><th>Días hábiles</th><th>Norma</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let p of plazosList">
+              <td>{{ p.replace('_',' ') }}</td>
+              <td>{{ plazos()[p]?.dias }}</td>
+              <td>{{ plazos()[p]?.norma }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>

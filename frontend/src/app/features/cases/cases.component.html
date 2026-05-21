@@ -1,0 +1,179 @@
+<div class="cases-wrap">
+
+  <!-- ── LISTA ── -->
+  <ng-container *ngIf="vista() === 'lista'">
+    <div class="toolbar">
+      <div class="toolbar-l">
+        <h1>⚖️ Gestión de Casos</h1>
+        <span class="chip-total">{{ casos().length }}</span>
+      </div>
+      <div class="toolbar-r">
+        <input [(ngModel)]="busqueda" (input)="cargar()"
+               placeholder="🔍 Buscar cliente o título…" class="inp-search"/>
+        <select [(ngModel)]="filtroEstado" (change)="cargar()" class="sel">
+          <option value="">Todos los estados</option>
+          <option *ngFor="let e of estados" [value]="e">{{ e | titlecase }}</option>
+        </select>
+        <select [(ngModel)]="filtroTipo" (change)="cargar()" class="sel">
+          <option value="">Todos los tipos</option>
+          <option *ngFor="let t of tipos" [value]="t">{{ t | titlecase }}</option>
+        </select>
+        <button (click)="vista.set('nuevo')" class="btn-primary">+ Nuevo Caso</button>
+      </div>
+    </div>
+
+    <div *ngIf="cargando()" class="loading">Cargando casos…</div>
+
+    <div class="grid" *ngIf="!cargando()">
+      <div *ngIf="casosFiltrados.length === 0" class="empty">
+        <div class="empty-icon">📂</div>
+        <p>No hay casos todavía.</p>
+        <button (click)="vista.set('nuevo')" class="btn-primary">Crear primer caso</button>
+      </div>
+
+      <div *ngFor="let caso of casosFiltrados" class="card" (click)="abrirDetalle(caso)">
+        <div class="card-head">
+          <span class="tipo-pill" [style.background]="colorTipo(caso.tipo)">{{ caso.tipo }}</span>
+          <span [class]="badgeEstado(caso.estado)">{{ caso.estado }}</span>
+        </div>
+        <h3>{{ caso.titulo }}</h3>
+        <p class="meta">👤 {{ caso.cliente }}</p>
+        <p class="meta" *ngIf="caso.numero_expediente">📄 Exp. {{ caso.numero_expediente }}</p>
+        <p class="meta" *ngIf="caso.juzgado">🏛️ {{ caso.juzgado }}</p>
+        <p class="meta">📅 {{ caso.fecha_inicio | date:'dd/MM/yyyy' }}</p>
+        <div class="card-actions" (click)="$event.stopPropagation()">
+          <button *ngIf="caso.estado==='activo'"
+                  (click)="cambiarEstado(caso.id!, 'cerrado')"
+                  class="btn-sm btn-warn">Cerrar</button>
+          <button *ngIf="caso.estado==='cerrado'"
+                  (click)="cambiarEstado(caso.id!, 'activo')"
+                  class="btn-sm btn-ok">Reabrir</button>
+          <button (click)="eliminar(caso.id!)" class="btn-sm btn-ghost">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ── NUEVO CASO ── -->
+  <ng-container *ngIf="vista() === 'nuevo'">
+    <div class="page-head">
+      <button (click)="vista.set('lista')" class="btn-back">← Volver</button>
+      <h2>Nuevo Caso</h2>
+    </div>
+    <div class="form-card">
+      <form [formGroup]="form" (ngSubmit)="guardar()">
+        <div class="form-grid">
+          <div class="fg full">
+            <label>Título del caso *</label>
+            <input formControlName="titulo" placeholder="Ej: Demanda ejecutiva — García vs López"/>
+          </div>
+          <div class="fg">
+            <label>Cliente *</label>
+            <input formControlName="cliente" placeholder="Nombre completo"/>
+          </div>
+          <div class="fg">
+            <label>Contraparte</label>
+            <input formControlName="contraparte" placeholder="Nombre contraparte"/>
+          </div>
+          <div class="fg">
+            <label>Tipo *</label>
+            <select formControlName="tipo">
+              <option *ngFor="let t of tipos" [value]="t">{{ t | titlecase }}</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Estado</label>
+            <select formControlName="estado">
+              <option *ngFor="let e of estados" [value]="e">{{ e | titlecase }}</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>N° Expediente</label>
+            <input formControlName="numero_expediente" placeholder="000/2025"/>
+          </div>
+          <div class="fg">
+            <label>Juzgado</label>
+            <input formControlName="juzgado" placeholder="Juzgado 1° Civil La Paz"/>
+          </div>
+          <div class="fg">
+            <label>Fecha inicio</label>
+            <input type="date" formControlName="fecha_inicio"/>
+          </div>
+          <div class="fg full">
+            <label>Descripción</label>
+            <textarea formControlName="descripcion" rows="3"
+                      placeholder="Breve descripción del caso…"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" (click)="vista.set('lista')" class="btn-secondary">Cancelar</button>
+          <button type="submit" [disabled]="form.invalid || cargando()" class="btn-primary">
+            {{ cargando() ? 'Guardando…' : '💾 Guardar Caso' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </ng-container>
+
+  <!-- ── DETALLE ── -->
+  <ng-container *ngIf="vista() === 'detalle' && casoSeleccionado()">
+    <div class="page-head">
+      <button (click)="vista.set('lista')" class="btn-back">← Volver</button>
+      <div>
+        <h2>{{ casoSeleccionado().caso?.titulo }}</h2>
+        <span [class]="badgeEstado(casoSeleccionado().caso?.estado)">
+          {{ casoSeleccionado().caso?.estado }}
+        </span>
+      </div>
+    </div>
+
+    <div class="detalle-grid">
+      <div class="panel">
+        <h3>📋 Información del caso</h3>
+        <dl>
+          <dt>Cliente</dt>      <dd>{{ casoSeleccionado().caso?.cliente }}</dd>
+          <dt>Tipo</dt>         <dd>{{ casoSeleccionado().caso?.tipo | titlecase }}</dd>
+          <dt>Contraparte</dt>  <dd>{{ casoSeleccionado().caso?.contraparte || '—' }}</dd>
+          <dt>Expediente</dt>   <dd>{{ casoSeleccionado().caso?.numero_expediente || '—' }}</dd>
+          <dt>Juzgado</dt>      <dd>{{ casoSeleccionado().caso?.juzgado || '—' }}</dd>
+          <dt>Inicio</dt>       <dd>{{ casoSeleccionado().caso?.fecha_inicio | date:'dd/MM/yyyy' }}</dd>
+        </dl>
+        <p class="desc" *ngIf="casoSeleccionado().caso?.descripcion">
+          {{ casoSeleccionado().caso.descripcion }}
+        </p>
+      </div>
+
+      <div class="panel">
+        <h3>📝 Notas</h3>
+        <div class="nota-box">
+          <textarea [(ngModel)]="nuevaNota" rows="2"
+                    placeholder="Escribe una nota o actuación…"></textarea>
+          <button (click)="agregarNota()" class="btn-primary btn-sm">Agregar</button>
+        </div>
+        <div class="notas-list">
+          <div *ngFor="let n of casoSeleccionado().notas" class="nota-item">
+            <span class="nota-tipo">{{ n.tipo }}</span>
+            <p>{{ n.contenido }}</p>
+            <small>{{ n.created_at | date:'dd/MM/yyyy HH:mm' }}</small>
+          </div>
+          <p *ngIf="!casoSeleccionado().notas?.length" class="empty-txt">Sin notas aún.</p>
+        </div>
+      </div>
+
+      <div class="panel panel-full">
+        <h3>📅 Línea de tiempo</h3>
+        <div class="timeline">
+          <div *ngFor="let t of casoSeleccionado().timeline" class="tl-item">
+            <div class="tl-dot"></div>
+            <div>
+              <p>{{ t.descripcion }}</p>
+              <small>{{ t.fecha | date:'dd/MM/yyyy' }}</small>
+            </div>
+          </div>
+          <p *ngIf="!casoSeleccionado().timeline?.length" class="empty-txt">Sin actuaciones.</p>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+</div>

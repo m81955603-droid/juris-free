@@ -1,0 +1,123 @@
+<div class="docs-layout">
+
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Generador de Documentos</h1>
+      <p class="page-sub">Documentos legales bolivianos profesionales en Word y PDF</p>
+    </div>
+    @if (step() !== 'select') {
+      <button class="btn-ghost" (click)="backToTemplates()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Volver
+      </button>
+    }
+  </header>
+
+  <!-- PASO 1: Seleccion de plantilla -->
+  @if (step() === 'select') {
+    <div class="templates-grid">
+      @for (t of templates; track t.id) {
+        <button class="template-card" (click)="selectTemplate(t)">
+          <span class="tmpl-icon">{{ t.icon }}</span>
+          <div class="tmpl-info">
+            <h3 class="tmpl-name">{{ t.nombre }}</h3>
+            <p class="tmpl-desc">{{ t.descripcion }}</p>
+          </div>
+          <svg class="tmpl-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+      }
+    </div>
+  }
+
+  <!-- PASO 2: Formulario -->
+  @if (step() === 'form') {
+    <div class="form-container">
+      <div class="form-header">
+        <span class="form-icon">{{ selectedTemplate()?.icon }}</span>
+        <div>
+          <h2 class="form-title">{{ selectedTemplate()?.nombre }}</h2>
+          <p class="form-sub">Completa los datos para generar el documento</p>
+        </div>
+      </div>
+
+      <div class="form-fields">
+        @for (campo of selectedTemplate()?.campos || []; track campo.id) {
+          <div class="field-group">
+            <label class="field-label">
+              {{ campo.label }}
+              @if (campo.requerido) { <span class="required">*</span> }
+            </label>
+
+            @if (campo.tipo === 'textarea') {
+              <textarea class="field-input field-textarea" [(ngModel)]="formData[campo.id]" [placeholder]="campo.placeholder || ''" rows="3"></textarea>
+            } @else if (campo.tipo === 'select') {
+              <select class="field-input field-select" [(ngModel)]="formData[campo.id]">
+                <option value="">Seleccionar...</option>
+                @for (op of campo.opciones; track op) {
+                  <option [value]="op">{{ op }}</option>
+                }
+              </select>
+            } @else {
+              <input class="field-input" [type]="campo.tipo" [(ngModel)]="formData[campo.id]" [placeholder]="campo.placeholder || ''">
+            }
+          </div>
+        }
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-primary" (click)="generateDocument()" [disabled]="isGenerating()">
+          @if (isGenerating()) {
+            <div class="btn-spinner"></div> Generando...
+          } @else {
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            Generar documento con IA
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- PASO 3: Preview + Descarga -->
+  @if (step() === 'preview') {
+    <div class="preview-container">
+      <div class="preview-toolbar">
+        <button class="btn-ghost" (click)="backToForm()">Editar datos</button>
+        <div class="download-btns">
+          @if (!isGenerating() && generatedContent()) {
+            <button class="btn-download word" (click)="downloadWord()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              Descargar Word
+            </button>
+            <button class="btn-download pdf" (click)="downloadPdf()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+              </svg>
+              Descargar PDF
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="preview-doc">
+        @if (isGenerating()) {
+          <div class="generating-state">
+            <div class="gen-spinner"></div>
+            <p>Generando documento con IA...</p>
+            <p class="gen-sub">Redactando con normativa boliviana vigente</p>
+          </div>
+        } @else {
+          <div class="doc-content" [innerHTML]="renderMarkdown(generatedContent())"></div>
+        }
+      </div>
+    </div>
+  }
+
+</div>

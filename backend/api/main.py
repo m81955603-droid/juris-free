@@ -1,0 +1,40 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+import logging
+import os
+
+load_dotenv(dotenv_path=r"C:\proyectos\juris-free\backend\.env", override=True)
+
+from .routes import llm, embeddings, health, library, muestras, cases, calendar
+
+logging.basicConfig(level=logging.INFO)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logging.info("JURIS-FREE Bolivia API iniciando...")
+    logging.info(f"Gemini:     {'OK' if os.getenv('GEMINI_API_KEY') else 'FALTA'}")
+    logging.info(f"Groq:       {'OK' if os.getenv('GROQ_API_KEY') else 'FALTA'}")
+    logging.info(f"Cerebras:   {'OK' if os.getenv('CEREBRAS_API_KEY') else 'FALTA'}")
+    logging.info(f"OpenRouter: {'OK' if os.getenv('OPENROUTER_API_KEY') else 'FALTA'}")
+    logging.info(f"SambaNova:  {'OK' if os.getenv('SAMBANOVA_API_KEY') else 'FALTA'}")
+    # Precargar indice de muestras en background
+    from .routes.muestras import build_index
+    idx = build_index()
+    logging.info(f"Muestras indexadas: {len(idx)} archivos Word")
+    yield
+
+app = FastAPI(title="JURIS-FREE Bolivia API", version="1.0.0", lifespan=lifespan)
+
+app.add_middleware(CORSMiddleware,
+    allow_origins=["*"], allow_credentials=True,
+    allow_methods=["*"], allow_headers=["*"])
+
+app.include_router(health.router)
+app.include_router(llm.router,       prefix="/api/v1/llm",       tags=["LLM"])
+app.include_router(embeddings.router, prefix="/api/v1/embeddings", tags=["Embeddings"])
+app.include_router(library.router,   prefix="/api/v1/library",   tags=["Biblioteca"])
+app.include_router(cases.router,    prefix="/api/v1/cases",    tags=["Casos"])
+app.include_router(calendar.router,  prefix="/api/v1/calendar",  tags=["Calendario"])
+app.include_router(muestras.router,  prefix="/api/v1/muestras",  tags=["Muestras"])

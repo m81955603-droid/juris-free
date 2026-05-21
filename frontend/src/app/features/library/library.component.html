@@ -1,0 +1,181 @@
+<div class="lib-layout">
+
+  <!-- Header -->
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Biblioteca Legal Bolivia</h1>
+      <p class="page-sub">
+        @if (stats()) {
+          {{ stats()!.total_normas }} normas · {{ stats()!.total_articulos_indexados }} articulos indexados
+        } @else {
+          CPE 2009 · Codigos · Leyes · Sentencias TCP
+        }
+      </p>
+    </div>
+    @if (view() === 'detail') {
+      <button class="btn-ghost" (click)="back()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Volver
+      </button>
+    }
+  </header>
+
+  <!-- Busqueda -->
+  @if (view() !== 'detail') {
+    <div class="search-bar">
+      <div class="search-input-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input
+          class="search-input"
+          [(ngModel)]="searchQuery"
+          (keydown)="onKeydown($event)"
+          placeholder="Buscar en normativa boliviana... ej: prescripcion, divorcio, despido, amparo">
+      </div>
+      <select class="filter-select" [(ngModel)]="selectedArea">
+        @for (a of areas; track a.valor) {
+          <option [value]="a.valor">{{ a.label }}</option>
+        }
+      </select>
+      <select class="filter-select" [(ngModel)]="selectedTipo">
+        @for (t of tipos; track t.valor) {
+          <option [value]="t.valor">{{ t.label }}</option>
+        }
+      </select>
+      <button class="btn-search" (click)="search()" [disabled]="isSearching() || !searchQuery.trim()">
+        @if (isSearching()) { Buscando... } @else { Buscar }
+      </button>
+    </div>
+  }
+
+  <!-- Contenido principal -->
+  <div class="main-area">
+
+    <!-- Vista de busqueda -->
+    @if (view() === 'search') {
+
+      <!-- Stats cards -->
+      @if (!hasSearched() && stats()) {
+        <div class="stats-section">
+          <div class="stats-grid">
+            @for (area of getObjectKeys(stats()!.por_area); track area) {
+              <div class="stat-card" (click)="selectedArea = area; search()">
+                <span class="stat-icon">{{ getTipoIcon('codigo') }}</span>
+                <div>
+                  <p class="stat-num">{{ stats()!.por_area[area] }}</p>
+                  <p class="stat-label">{{ area | titlecase }}</p>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="normas-section">
+            <h3 class="section-title">Normas disponibles</h3>
+            <div class="normas-list">
+              @for (norma of normas(); track norma.id) {
+                <div class="norma-row" (click)="openNorma(norma.id)">
+                  <span class="norma-icon">{{ getTipoIcon(norma.tipo) }}</span>
+                  <div class="norma-info">
+                    <p class="norma-titulo">{{ norma.titulo }}</p>
+                    <p class="norma-meta">
+                      <span class="area-badge" [style.background]="getAreaColor(norma.area) + '18'" [style.color]="getAreaColor(norma.area)">{{ norma.area }}</span>
+                      · {{ norma.total_articulos }} articulos · {{ norma.fecha | date:'yyyy' }}
+                    </p>
+                  </div>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14" style="color:var(--txt-3);flex-shrink:0">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Resultados de busqueda -->
+      @if (hasSearched()) {
+        <div class="results-section">
+          @if (isSearching()) {
+            <div class="searching-state">
+              <div class="search-spinner"></div>
+              <p>Buscando en normativa boliviana...</p>
+            </div>
+          } @else if (results().length === 0) {
+            <div class="no-results">
+              <p class="no-results-icon">🔍</p>
+              <p>No se encontraron resultados para "<strong>{{ searchQuery }}</strong>"</p>
+              <p class="no-results-hint">Intenta con otros terminos: prescripcion, contrato, despido, amparo, divorcio...</p>
+            </div>
+          } @else {
+            <p class="results-count">{{ results().length }} resultado(s) para "{{ searchQuery }}"</p>
+            <div class="results-list">
+              @for (result of results(); track result.id) {
+                <div class="result-card" (click)="openNorma(result.id)">
+                  <div class="result-header">
+                    <span class="result-icon">{{ getTipoIcon(result.tipo) }}</span>
+                    <div class="result-info">
+                      <h3 class="result-titulo">{{ result.titulo }}</h3>
+                      <div class="result-meta">
+                        <span class="area-badge" [style.background]="getAreaColor(result.area) + '18'" [style.color]="getAreaColor(result.area)">{{ result.area }}</span>
+                        <span class="tipo-badge">{{ result.tipo }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="result-resumen">{{ result.resumen }}</p>
+                  @if (result.articulos_relevantes.length > 0) {
+                    <div class="articulos-preview">
+                      <p class="articulos-label">Articulos relevantes:</p>
+                      @for (art of result.articulos_relevantes; track art.numero) {
+                        <div class="articulo-chip">
+                          <strong>Art. {{ art.numero }}</strong> — {{ art.texto.substring(0, 120) }}...
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    }
+
+    <!-- Detalle de norma -->
+    @if (view() === 'detail' && selectedNorma()) {
+      <div class="detail-section">
+        <div class="detail-header">
+          <span class="detail-icon">{{ getTipoIcon(selectedNorma().tipo) }}</span>
+          <div>
+            <h2 class="detail-titulo">{{ selectedNorma().titulo }}</h2>
+            <div class="detail-meta">
+              <span class="area-badge" [style.background]="getAreaColor(selectedNorma().area) + '18'" [style.color]="getAreaColor(selectedNorma().area)">{{ selectedNorma().area }}</span>
+              <span>{{ selectedNorma().fecha | date:'dd/MM/yyyy' }}</span>
+              <span>{{ selectedNorma().fuente }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-resumen">
+          <h3>Descripcion</h3>
+          <p>{{ selectedNorma().resumen }}</p>
+        </div>
+
+        <div class="detail-articulos">
+          <h3>Articulos indexados</h3>
+          <div class="articulos-list">
+            @for (art of selectedNorma().articulos; track art.num) {
+              <div class="articulo-card">
+                <div class="articulo-num">Art. {{ art.num }}</div>
+                <p class="articulo-texto">{{ art.texto }}</p>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+  </div>
+</div>

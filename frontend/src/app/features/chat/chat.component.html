@@ -1,0 +1,132 @@
+<div class="chat-layout">
+
+  <!-- Header -->
+  <header class="chat-header">
+    <div class="header-left">
+      <h1 class="page-title">Consulta Jurídica</h1>
+      <p class="page-sub">Derecho boliviano · CPE 2009 · TCP · TSJ</p>
+    </div>
+    <div class="header-right">
+      @if (currentProvider()) {
+        <span class="provider-pill">
+          <span class="provider-dot"></span>
+          {{ currentProvider() }}
+        </span>
+      }
+      <button class="btn-ghost" (click)="clearChat()" title="Nueva consulta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m-8-8h16"/>
+        </svg>
+        Nueva
+      </button>
+    </div>
+  </header>
+
+  <!-- Area selector -->
+  <div class="area-bar">
+    @for (a of areas; track a.value) {
+      <button class="area-chip" [class.active]="selectedArea() === a.value" (click)="selectedArea.set(a.value)">
+        {{ a.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Messages -->
+  <div class="messages-area" #messagesEl>
+
+    <!-- Quick actions (solo al inicio) -->
+    @if (messages().length <= 1) {
+      <div class="quick-actions">
+        <p class="quick-title">Consultas frecuentes</p>
+        <div class="quick-grid">
+          @for (qa of quickActions; track qa.label) {
+            <button class="quick-card" (click)="sendMessage(qa.prompt)">
+              <span class="quick-icon">{{ qa.icon }}</span>
+              <span class="quick-label">{{ qa.label }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    @for (msg of messages(); track msg.id) {
+      <div class="message" [class.user]="msg.role === 'user'" [class.assistant]="msg.role === 'assistant'">
+
+        @if (msg.role === 'assistant') {
+          <div class="msg-avatar assistant-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1M4.22 4.22l.707.707m12.02 12.02l.707.707M1 12h1m20 0h1M4.22 19.78l.707-.707M18.95 5.05l.707-.707M12 7a5 5 0 100 10A5 5 0 0012 7z"/>
+            </svg>
+          </div>
+        }
+
+        <div class="msg-body">
+          <div class="msg-bubble">
+            @if (msg.isStreaming) {
+              <div class="typing-dots"><span></span><span></span><span></span></div>
+            } @else {
+              <div class="msg-content" [innerHTML]="renderMarkdown(msg.content)"></div>
+            }
+          </div>
+
+          @if (msg.role === 'assistant' && !msg.isStreaming && msg.provider !== 'sistema') {
+            <div class="msg-actions">
+              <span class="msg-time">{{ msg.timestamp | date:'HH:mm' }}</span>
+              @if (msg.provider) { <span class="msg-provider">{{ msg.provider }}</span> }
+              <button class="action-btn" (click)="exportToWord(msg)" [disabled]="exportingId() === msg.id" title="Exportar a Word">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                {{ exportingId() === msg.id ? 'Generando...' : 'Word' }}
+              </button>
+              <button class="action-btn" (click)="exportToPdf(msg)" title="Exportar a PDF">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+                PDF
+              </button>
+            </div>
+          }
+
+          @if (msg.role === 'user') {
+            <div class="msg-actions">
+              <span class="msg-time">{{ msg.timestamp | date:'HH:mm' }}</span>
+            </div>
+          }
+        </div>
+
+        @if (msg.role === 'user') {
+          <div class="msg-avatar user-avatar">U</div>
+        }
+
+      </div>
+    }
+  </div>
+
+  <!-- Input -->
+  <div class="input-area">
+    <div class="input-wrapper">
+      <textarea
+        #inputEl
+        class="chat-input"
+        [(ngModel)]="inputText"
+        placeholder="Escribe tu consulta jurídica... (Enter para enviar, Shift+Enter para nueva línea)"
+        rows="1"
+        [disabled]="isLoading()"
+        (keydown)="onKeydown($event)"
+        (input)="$any($event.target).style.height = 'auto'; $any($event.target).style.height = $any($event.target).scrollHeight + 'px'">
+      </textarea>
+      <button class="send-btn" (click)="sendMessage()" [disabled]="isLoading() || !inputText.trim()">
+        @if (isLoading()) {
+          <div class="send-spinner"></div>
+        } @else {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19V5m0 0l-7 7m7-7l7 7"/>
+          </svg>
+        }
+      </button>
+    </div>
+    <p class="input-hint">Basado en CPE 2009, Ley 12760, Ley 1768, Ley 996, Ley 439 y jurisprudencia del TCP · TSJ</p>
+  </div>
+
+</div>

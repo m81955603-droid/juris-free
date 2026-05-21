@@ -1,0 +1,192 @@
+<div class="analyzer-layout">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Analisis de Documentos</h1>
+      <p class="page-sub">Sube PDF o Word - la IA analiza, resume y responde tus preguntas</p>
+    </div>
+    @if (step() === "ready") {
+      <button class="btn-ghost" (click)="resetUpload()">Analizar otro</button>
+    }
+  </header>
+
+  <div class="main-content">
+
+    @if (step() === "upload") {
+      <div class="upload-view">
+        <div class="drop-zone" [class.drag-over]="dragOver()"
+             (dragover)="onDragOver($event)" (dragleave)="onDragLeave()"
+             (drop)="onDrop($event)" (click)="fileInput.click()">
+          <input #fileInput type="file" accept=".pdf,.docx,.doc,.txt" style="display:none" (change)="onFileSelected($event)">
+          <div class="drop-content">
+            <div class="drop-icons">
+              <span class="file-icon pdf">PDF</span>
+              <span class="file-icon word">DOC</span>
+              <span class="file-icon txt">TXT</span>
+            </div>
+            <h3>Arrastra tu documento aqui</h3>
+            <p>o haz clic para seleccionar</p>
+            <p class="drop-hint">PDF · Word (.docx) · Texto (.txt) · Maximo 20MB</p>
+          </div>
+        </div>
+        <div class="upload-features">
+          <h4>Que puede analizar la IA?</h4>
+          <div class="features-grid">
+            <div class="feature-item"><span class="feat-icon">📋</span><div><p class="feat-title">Contratos</p><p class="feat-desc">Obligaciones, riesgos, clausulas, plazos</p></div></div>
+            <div class="feature-item"><span class="feat-icon">⚖</span><div><p class="feat-title">Demandas</p><p class="feat-desc">Petitorio, fundamentos, articulos citados</p></div></div>
+            <div class="feature-item"><span class="feat-icon">🏛</span><div><p class="feat-title">Sentencias</p><p class="feat-desc">Fallo, argumentos, apelabilidad</p></div></div>
+            <div class="feature-item"><span class="feat-icon">📜</span><div><p class="feat-title">Poderes</p><p class="feat-desc">Facultades, vigencia, limitaciones</p></div></div>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (step() === "analyzing") {
+      <div class="analyzing-view">
+        <div class="file-card">
+          <span class="file-card-icon">{{ fileType() === ".pdf" ? "📕" : "📘" }}</span>
+          <div>
+            <p class="file-card-name">{{ fileName() }}</p>
+            <p class="file-card-size">{{ formatSize(fileSize()) }}</p>
+          </div>
+        </div>
+        <div class="progress-steps">
+          <div class="prog-step done"><span class="prog-dot"></span><span>Archivo cargado</span></div>
+          <div class="prog-step active"><span class="prog-dot spinning"></span><span>Analizando con IA...</span></div>
+          <div class="prog-step"><span class="prog-dot"></span><span>Preparando resumen</span></div>
+        </div>
+        <p class="analyzing-hint">Esto puede tomar 10-20 segundos</p>
+      </div>
+    }
+
+    @if (step() === "ready") {
+      <div class="result-view">
+        <div class="file-info-bar">
+          <span class="file-badge">{{ fileType() === ".pdf" ? "PDF" : "Word" }}</span>
+          <span class="file-name">{{ fileName() }}</span>
+          <span class="file-size">{{ formatSize(fileSize()) }}</span>
+          @if (analysis()) {
+            <span class="doc-type-badge">{{ analysis()!.tipo }}</span>
+          }
+        </div>
+
+        <div class="tabs">
+          <button class="tab" [class.active]="activeTab() === 'resumen'" (click)="activeTab.set('resumen')">Resumen</button>
+          <button class="tab" [class.active]="activeTab() === 'chat'"    (click)="activeTab.set('chat')">Preguntas</button>
+          <button class="tab" [class.active]="activeTab() === 'export'"  (click)="activeTab.set('export')">Exportar</button>
+        </div>
+
+        @if (activeTab() === "resumen" && analysis()) {
+          <div class="resumen-view">
+            <div class="resumen-card main">
+              <h3>Resumen ejecutivo</h3>
+              <p>{{ analysis()!.resumen }}</p>
+            </div>
+            <div class="resumen-grid">
+              @if (analysis()!.partes.length > 0) {
+                <div class="resumen-card">
+                  <h4>Partes</h4>
+                  <ul>@for (p of analysis()!.partes; track p) { <li>{{ p }}</li> }</ul>
+                </div>
+              }
+              @if (analysis()!.fechas.length > 0) {
+                <div class="resumen-card">
+                  <h4>Fechas importantes</h4>
+                  <ul>@for (f of analysis()!.fechas; track f) { <li>{{ f }}</li> }</ul>
+                </div>
+              }
+              @if (analysis()!.montos.length > 0) {
+                <div class="resumen-card">
+                  <h4>Montos</h4>
+                  <ul>@for (m of analysis()!.montos; track m) { <li>{{ m }}</li> }</ul>
+                </div>
+              }
+              @if (analysis()!.articulos.length > 0) {
+                <div class="resumen-card">
+                  <h4>Articulos citados</h4>
+                  <ul>@for (art of analysis()!.articulos; track art) { <li>{{ art }}</li> }</ul>
+                </div>
+              }
+            </div>
+            @if (analysis()!.riesgos.length > 0) {
+              <div class="resumen-card riesgos">
+                <h4>Puntos de atencion</h4>
+                <ul>@for (r of analysis()!.riesgos; track r) { <li>{{ r }}</li> }</ul>
+              </div>
+            }
+            @if (analysis()!.siguiente) {
+              <div class="resumen-card siguiente">
+                <h4>Recomendacion</h4>
+                <p>{{ analysis()!.siguiente }}</p>
+              </div>
+            }
+            <div class="sugeridas">
+              <p class="sugeridas-title">Preguntas frecuentes:</p>
+              <div class="sugeridas-grid">
+                @for (q of getSugeridas(); track q) {
+                  <button class="sugerida-btn" (click)="askQuestion(q)">{{ q }}</button>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        @if (activeTab() === "chat") {
+          <div class="chat-view">
+            <div class="chat-messages">
+              @for (msg of chatMessages(); track msg.timestamp) {
+                <div class="chat-msg" [class.user]="msg.role === 'user'" [class.assistant]="msg.role === 'assistant'">
+                  <div class="chat-bubble">
+                    <div class="chat-content" [innerHTML]="renderMarkdown(msg.content)"></div>
+                    <span class="chat-time">{{ msg.timestamp | date:"HH:mm" }}</span>
+                  </div>
+                </div>
+              }
+              @if (isAnswering()) {
+                <div class="chat-msg assistant">
+                  <div class="chat-bubble">
+                    <div class="typing"><span></span><span></span><span></span></div>
+                  </div>
+                </div>
+              }
+            </div>
+            <div class="chat-input-area">
+              <div class="sugeridas-chips">
+                @for (q of getSugeridas(); track q) {
+                  <button class="chip" (click)="askQuestion(q)">{{ q }}</button>
+                }
+              </div>
+              <div class="input-row">
+                <textarea class="chat-input" [(ngModel)]="question"
+                  placeholder="Pregunta sobre el documento..."
+                  rows="2" [disabled]="isAnswering()" (keydown)="onKeydown($event)">
+                </textarea>
+                <button class="send-btn" (click)="askQuestion()" [disabled]="isAnswering() || !question.trim()">
+                  @if (isAnswering()) {
+                    <div class="send-spinner"></div>
+                  } @else { → }
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
+        @if (activeTab() === "export") {
+          <div class="export-view">
+            <div class="export-card" (click)="exportAnalysis()">
+              <span class="export-icon">📊</span>
+              <div><h3>Exportar analisis completo</h3><p>Word con resumen, partes, fechas y riesgos</p></div>
+              <span>→</span>
+            </div>
+            <div class="export-card" (click)="exportChat()">
+              <span class="export-icon">💬</span>
+              <div><h3>Exportar preguntas y respuestas</h3><p>Word con todas las consultas realizadas</p></div>
+              <span>→</span>
+            </div>
+          </div>
+        }
+
+      </div>
+    }
+
+  </div>
+</div>
