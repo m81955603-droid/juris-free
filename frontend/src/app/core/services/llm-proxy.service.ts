@@ -105,7 +105,7 @@ export class LlmProxyService {
 
   private markRateLimited(provider: string): void {
     const limits = this.getRateLimits();
-    limits[provider] = Date.now() + 15 * 60 * 1000;
+    limits[provider] = Date.now() + 1 * 60 * 1000;
     localStorage.setItem(this.rateLimitKey, JSON.stringify(limits));
   }
 
