@@ -7,7 +7,7 @@ import os
 
 load_dotenv(dotenv_path=r"C:\proyectos\juris-free\backend\.env", override=True)
 
-from .routes import llm, embeddings, health, library, muestras, cases, calendar
+from .routes import llm, embeddings, health, library, muestras, cases, calendar, clients
 
 logging.basicConfig(level=logging.INFO)
 
@@ -37,4 +37,5 @@ app.include_router(embeddings.router, prefix="/api/v1/embeddings", tags=["Embedd
 app.include_router(library.router,   prefix="/api/v1/library",   tags=["Biblioteca"])
 app.include_router(cases.router,    prefix="/api/v1/cases",    tags=["Casos"])
 app.include_router(calendar.router,  prefix="/api/v1/calendar",  tags=["Calendario"])
+app.include_router(clients.router,  prefix="/api/v1",         tags=["Clientes"])
 app.include_router(muestras.router,  prefix="/api/v1/muestras",  tags=["Muestras"])

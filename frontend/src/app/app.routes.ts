@@ -10,6 +10,7 @@ export const routes: Routes = [
   { path: 'library',      loadComponent: () => import('./features/library/library.component').then(m => m.LibraryComponent) },
   { path: 'cases',        loadComponent: () => import('./features/cases/cases.component').then(m => m.CasesComponent) },
   { path: 'calendar',     loadComponent: () => import('./features/calendar/calendar.component').then(m => m.CalendarComponent) },
+  { path: 'clients', loadComponent: () => import('./features/clients/clients.component').then(m => m.ClientsComponent) },
   { path: 'settings',     loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent) },
   { path: 'auth/callback', loadComponent: () => import('./core/auth-callback/auth-callback.component').then(m => m.AuthCallbackComponent) },
   { path: '**', redirectTo: '/chat' }
