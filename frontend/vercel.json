@@ -1,4 +1,6 @@
 {
+  "buildCommand": "ng build --configuration production",
+  "outputDirectory": "dist/juris-free-app/browser",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
