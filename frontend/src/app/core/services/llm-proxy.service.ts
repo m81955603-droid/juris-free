@@ -11,7 +11,7 @@ export class LlmProxyService {
   chat(messages: LlmMessage[], systemPrompt?: string, preferredProvider?: string): Observable<LlmResponse> {
     return this.http.post<LlmResponse>(
       environment.apiUrl + '/api/v1/llm/chat',
-      { messages, system: systemPrompt, maxTokens: 4096 },
+      { messages, system: systemPrompt, maxTokens: 65536 },
       { headers: new HttpHeaders({ 'Content-Type': 'application/json' }) }
     );
   }
@@ -19,7 +19,7 @@ export class LlmProxyService {
   chatWithContext(messages: LlmMessage[], docType: string): Observable<LlmResponse> {
     return this.http.post<LlmResponse>(
       environment.apiUrl + '/api/v1/llm/chat',
-      { messages, maxTokens: 4096, useContext: true, docType },
+      { messages, maxTokens: 65536, useContext: true, docType },
       { headers: new HttpHeaders({ 'Content-Type': 'application/json' }) }
     );
   }

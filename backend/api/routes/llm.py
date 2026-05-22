@@ -15,7 +15,7 @@ class ChatRequest(BaseModel):
     model:      Optional[str] = None
     messages:   List[Message]
     system:     Optional[str] = None
-    maxTokens:  int = 4096
+    maxTokens:  int = 65536
     useContext: bool = False
     docType:    Optional[str] = None
 
