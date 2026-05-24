@@ -19,6 +19,7 @@ def download_muestras():
         logging.info(f"Muestras ya descargadas en {muestras_path}")
         return
     logging.info(f"Descargando muestras desde {hf_repo}...")
+    logging.info(f"HF_TOKEN presente: {bool(hf_token)}, REPO: {hf_repo}")
     try:
         from huggingface_hub import snapshot_download
         snapshot_download(
