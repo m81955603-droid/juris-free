@@ -12,10 +12,7 @@ import json
 
 router = APIRouter()
 
-MUESTRAS_BASE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    '..', '..', 'muestras'
-)
+MUESTRAS_BASE = os.environ.get('MUESTRAS_PATH', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'muestras'))
 
 # Cache del indice en memoria
 _index_cache = None

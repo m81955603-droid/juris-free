@@ -4,12 +4,33 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import logging
 import os
-
 load_dotenv(dotenv_path=r"C:\proyectos\juris-free\backend\.env", override=True)
-
 from .routes import llm, embeddings, health, library, muestras, cases, calendar, clients
-
 logging.basicConfig(level=logging.INFO)
+
+def download_muestras():
+    hf_token = os.getenv("HF_TOKEN")
+    hf_repo = os.getenv("HF_DATASET_REPO")
+    if not hf_token or not hf_repo:
+        logging.info("HF_TOKEN o HF_DATASET_REPO no configurados, saltando descarga")
+        return
+    muestras_path = "/tmp/muestras"
+    if os.path.exists(muestras_path) and len(os.listdir(muestras_path)) > 10:
+        logging.info(f"Muestras ya descargadas en {muestras_path}")
+        return
+    logging.info(f"Descargando muestras desde {hf_repo}...")
+    try:
+        from huggingface_hub import snapshot_download
+        snapshot_download(
+            repo_id=hf_repo,
+            repo_type="dataset",
+            local_dir=muestras_path,
+            token=hf_token,
+            ignore_patterns=["*.gitattributes", "*.md"]
+        )
+        logging.info("Muestras descargadas correctamente")
+    except Exception as e:
+        logging.error(f"Error descargando muestras: {e}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,18 +40,16 @@ async def lifespan(app: FastAPI):
     logging.info(f"Cerebras:   {'OK' if os.getenv('CEREBRAS_API_KEY') else 'FALTA'}")
     logging.info(f"OpenRouter: {'OK' if os.getenv('OPENROUTER_API_KEY') else 'FALTA'}")
     logging.info(f"SambaNova:  {'OK' if os.getenv('SAMBANOVA_API_KEY') else 'FALTA'}")
-    # Precargar indice de muestras en background
+    download_muestras()
     from .routes.muestras import build_index
     idx = build_index()
     logging.info(f"Muestras indexadas: {len(idx)} archivos Word")
     yield
 
 app = FastAPI(title="JURIS-FREE Bolivia API", version="1.0.0", lifespan=lifespan)
-
 app.add_middleware(CORSMiddleware,
     allow_origins=["*"], allow_credentials=True,
     allow_methods=["*"], allow_headers=["*"])
-
 app.include_router(health.router)
 app.include_router(llm.router,       prefix="/api/v1/llm",       tags=["LLM"])
 app.include_router(embeddings.router, prefix="/api/v1/embeddings", tags=["Embeddings"])
