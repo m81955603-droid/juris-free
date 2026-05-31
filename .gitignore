@@ -17,3 +17,5 @@ frontend/.angular/
 .DS_Store
 Thumbs.db
 .github/
+.vercel
+.env*

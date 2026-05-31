@@ -8,6 +8,6 @@ export const authGuard: CanActivateFn = () => {
   const router   = inject(Router);
   return supabase.isAuthenticated$.pipe(
     take(1),
-    map(isAuth => isAuth ? true : router.createUrlTree(['/chat']))
+    map(isAuth => isAuth ? true : router.createUrlTree(['/login']))
   );
 };

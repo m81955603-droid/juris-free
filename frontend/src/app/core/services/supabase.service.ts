@@ -28,6 +28,12 @@ export class SupabaseService {
       this.userSubject.next(session?.user ?? null);
     });
   }
+signInWithPassword(email: string, password: string): Observable<void> {
+  return from(
+    this.client.auth.signInWithPassword({ email, password })
+      .then(({ error }) => { if (error) throw error; })
+  );
+}
 
   signInWithGoogle(): Observable<void> {
     return from(
