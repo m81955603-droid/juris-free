@@ -1,0 +1,280 @@
+import json
+from datetime import datetime
+
+normas = [
+  {
+    "id": "cpe-2009",
+    "tipo": "constitucion",
+    "titulo": "Constitucion Politica del Estado Plurinacional de Bolivia 2009",
+    "area": "constitucional",
+    "fuente": "Asamblea Constituyente",
+    "fecha": "2009-02-07",
+    "resumen": "Ley fundamental del Estado Plurinacional de Bolivia. Establece la organizacion del Estado, derechos fundamentales, garantias constitucionales, estructura de poderes y principios del ordenamiento juridico boliviano.",
+    "articulos": [
+      {"num": "1", "texto": "Bolivia se constituye en un Estado Unitario Social de Derecho Plurinacional Comunitario, libre, independiente, soberano, democratico, intercultural, descentralizado y con autonomias."},
+      {"num": "8", "texto": "El Estado asume y promueve como principios etico-morales de la sociedad plural: ama qhilla, ama llulla, ama suwa, suma qamana (vivir bien)."},
+      {"num": "13", "texto": "Los derechos reconocidos por esta Constitucion son inviolables, universales, interdependientes, indivisibles y progresivos."},
+      {"num": "14", "texto": "Queda prohibida y sancionada toda forma de discriminacion fundada en razon de sexo, color, edad, orientacion sexual, identidad de genero, origen, cultura, nacionalidad, idioma, credo religioso, ideologia, estado civil, condicion economica o social, discapacidad, embarazo, u otras."},
+      {"num": "15", "texto": "Toda persona tiene derecho a la vida y a la integridad fisica, psicologica y sexual. Nadie sera torturado, ni sufrira tratos crueles, inhumanos, degradantes o humillantes."},
+      {"num": "21", "texto": "Las bolivianas y los bolivianos tienen derecho a la libertad de expresion, opinion e informacion; a la libertad de reunion y asociacion; a la libre residencia, permanencia y circulacion en todo el territorio boliviano."},
+      {"num": "56", "texto": "Toda persona tiene derecho a la propiedad privada individual o colectiva, siempre que esta cumpla una funcion social."},
+      {"num": "115", "texto": "Toda persona sera protegida oportuna y efectivamente por los jueces y tribunales en el ejercicio de sus derechos e intereses legitimos. El Estado garantiza el derecho al debido proceso, a la defensa y a una justicia plural, pronta, oportuna, gratuita, transparente y sin dilaciones."},
+      {"num": "116", "texto": "Se garantiza la presuncion de inocencia. Durante el proceso, en caso de duda sobre la norma aplicable, regira la mas favorable al imputado o procesado."},
+      {"num": "119", "texto": "Las partes en conflicto gozaran de igualdad de oportunidades para ejercer durante el proceso las facultades y los derechos que les asistan."},
+      {"num": "120", "texto": "Toda persona tiene derecho a ser oida por una autoridad jurisdiccional competente, independiente e imparcial."},
+      {"num": "125", "texto": "Toda persona que considere que su vida esta en peligro, que es ilegalmente perseguida, o que es indebidamente procesada o privada de libertad personal, podra interponer Accion de Libertad y acudir de manera oral o escrita, por si o por cualquiera a su nombre, ante cualquier juez o tribunal competente."},
+      {"num": "128", "texto": "La Accion de Amparo Constitucional tendra lugar contra actos u omisiones ilegales o indebidos de los servidores publicos, o de persona individual o colectiva, que restrinjan, supriman o amenacen restringir o suprimir los derechos reconocidos por la Constitucion y la ley."},
+      {"num": "178", "texto": "La potestad de impartir justicia emana del pueblo boliviano y se sustenta en los principios de independencia, imparcialidad, seguridad juridica, publicidad, probidad, celeridad, gratuidad, pluralismo juridico, interculturalidad, equidad."},
+      {"num": "180", "texto": "La jurisdiccion ordinaria se fundamenta en los principios procesales de gratuidad, publicidad, transparencia, oralidad, celeridad, probidad, honestidad, legalidad, eficacia, eficiencia, accesibilidad, inmediatez, verdad material, debido proceso e igualdad de las partes ante el juez."},
+    ]
+  },
+  {
+    "id": "ley-348-2013",
+    "tipo": "ley",
+    "titulo": "Ley 348 — Ley Integral para Garantizar a las Mujeres una Vida Libre de Violencia",
+    "area": "familiar",
+    "fuente": "Asamblea Legislativa Plurinacional",
+    "fecha": "2013-03-09",
+    "resumen": "Ley que establece mecanismos, medidas y politicas integrales de prevencion, atencion, proteccion y reparacion a las mujeres en situacion de violencia, asi como la persecucion y sancion a los agresores.",
+    "articulos": [
+      {"num": "1", "texto": "La presente Ley tiene por objeto establecer mecanismos, medidas y politicas integrales de prevencion, atencion, proteccion y reparacion a las mujeres en situacion de violencia, asi como la persecucion y sancion a los agresores, con el fin de garantizar a las mujeres una vida digna y el ejercicio pleno de sus derechos para Vivir Bien."},
+      {"num": "5", "texto": "Constituye violencia contra la dignidad, la integridad fisica, psicologica, sexual, economica o reproductiva de la mujer, el accionar sistematico de poder que se ejerce mediante conductas y actitudes basadas en un sistema de valores que subordinan a la mujer."},
+      {"num": "7", "texto": "Se reconocen formas de violencia: violencia fisica, violencia feminicida, violencia psicologica, violencia mediática, violencia simbolica y/o encubierta, violencia contra la dignidad, la honra y el nombre, violencia sexual, violencia contra los derechos reproductivos, violencia en servicios de salud, violencia patrimonial y economica, violencia laboral, violencia en el sistema educativo, violencia en el ejercicio politico y de liderazgo de la mujer, violencia institucional, violencia en razon de creencia o practica religiosa, violencia contra los derechos y la libertad sexual."},
+      {"num": "8", "texto": "El feminicidio se sancionara con la pena de treinta (30) anos de presidio sin derecho a indulto."},
+      {"num": "9", "texto": "Las medidas de proteccion son de aplicacion inmediata, que impone la autoridad competente para salvaguardar la vida, la integridad fisica, psicologica, sexual, los derechos patrimoniales, economicos, laborales y otros de la mujer en situacion de violencia."},
+      {"num": "32", "texto": "La victima de violencia tiene derecho a la atencion inmediata y sin discriminacion, asistencia legal gratuita, asistencia medica y psicologica gratuita, y a ser informada sobre sus derechos."},
+      {"num": "35", "texto": "En todo proceso penal por violencia contra la mujer, el Ministerio Publico adoptara las medidas necesarias para garantizar la integridad de la victima, los testigos y sus familias."},
+    ]
+  },
+  {
+    "id": "ley-603-2014",
+    "tipo": "codigo",
+    "titulo": "Ley 603 — Codigo de las Familias y del Proceso Familiar",
+    "area": "familiar",
+    "fuente": "Asamblea Legislativa Plurinacional",
+    "fecha": "2014-11-19",
+    "resumen": "Regula las relaciones familiares en Bolivia: matrimonio, union libre, divorcio, filiacion, adopcion, tutela, asistencia familiar y procesos judiciales de familia. Reemplaza al Codigo de Familia de 1972.",
+    "articulos": [
+      {"num": "1", "texto": "El presente Codigo tiene por objeto regular las relaciones familiares y los procesos jurisdiccionales emergentes de las mismas, en el marco de los principios y valores establecidos en la Constitucion Politica del Estado."},
+      {"num": "137", "texto": "El matrimonio es la union voluntaria entre una mujer y un hombre, con vocacion de permanencia, registrada ante el Oficial del Registro Civil."},
+      {"num": "168", "texto": "Las uniones libres o de hecho que reuan las condiciones de estabilidad y singularidad, mantenidas entre una mujer y un hombre sin impedimento legal, produciran los mismos efectos que el matrimonio civil, tanto en las relaciones personales y patrimoniales de los convivientes, como en lo que respecta a las hijas e hijos adoptados o nacidos de aquellas."},
+      {"num": "205", "texto": "El divorcio o desvinculacion conyugal disuelve el vinculo matrimonial. Puede ser demandado por cualquiera de los conyuges invocando causales o de mutuo acuerdo."},
+      {"num": "206", "texto": "Son causales de divorcio o desvinculacion conyugal: la ruptura del proyecto de vida en comun, el adulterio, la sevicia, el abandono malicioso del hogar, la tentativa de uno de los conyuges contra la vida del otro, la condena del otro conyuge."},
+      {"num": "207", "texto": "El divorcio por mutuo acuerdo procede cuando los conyuges de comun acuerdo deciden disolver el vinculo conyugal, sin necesidad de expresar causa alguna."},
+      {"num": "109", "texto": "La asistencia familiar comprende todo lo indispensable para el sustento, habitacion, vestido, educacion, atencion medica, recreacion y esparcimiento, segun la condicion y posibilidades economicas de la familia."},
+      {"num": "111", "texto": "Estan obligados reciprocamente a prestarse asistencia familiar: los conyuges o convivientes entre si; los ascendientes y descendientes; los hermanos y hermanas."},
+      {"num": "60", "texto": "La filiacion es el vinculo juridico que une a los hijos con sus progenitores. Puede ser por naturaleza o por adopcion."},
+      {"num": "390", "texto": "El proceso familiar es oral, continuo y concentrado. Las audiencias no podran suspenderse salvo caso fortuito o fuerza mayor."},
+    ]
+  },
+  {
+    "id": "ley-1173-2019",
+    "tipo": "ley",
+    "titulo": "Ley 1173 — Ley de Abreviacion Procesal Penal y de Fortalecimiento de la Lucha Integral contra la Violencia a Ninas, Ninos, Adolescentes y Mujeres",
+    "area": "penal",
+    "fuente": "Asamblea Legislativa Plurinacional",
+    "fecha": "2019-05-03",
+    "resumen": "Modifica el Codigo de Procedimiento Penal para agilizar procesos penales, establecer plazos maximos de detencion preventiva, fortalecer la lucha contra la violencia a mujeres y menores, e incorporar medidas cautelares alternativas.",
+    "articulos": [
+      {"num": "1", "texto": "La presente Ley tiene por objeto modificar el Codigo de Procedimiento Penal para garantizar la celeridad procesal, evitar la retardacion de justicia y fortalecer la lucha integral contra la violencia a ninas, ninos, adolescentes y mujeres."},
+      {"num": "5", "texto": "La detencion preventiva tendra una duracion maxima de dieciocho (18) meses sin que se haya dictado acusacion formal, o de treinta y seis (36) meses sin que se hubiera dictado sentencia. Cumplidos estos plazos, el juez decretara la cesacion de la detencion preventiva."},
+      {"num": "7", "texto": "Son medidas cautelares alternativas a la detencion preventiva: la detencion domiciliaria, la prohibicion de salir del pais, la prohibicion de concurrir a determinados lugares, la prohibicion de comunicarse con personas determinadas, la fianza economica."},
+      {"num": "10", "texto": "En los delitos de violencia contra la mujer, el juez debera aplicar medidas de proteccion de manera inmediata, incluyendo la prohibicion al agresor de acercarse a la victima."},
+      {"num": "15", "texto": "Los procesos por delitos de violencia contra ninas, ninos y adolescentes tendran caracter preferente y su tramitacion sera prioritaria."},
+      {"num": "232", "texto": "El juicio oral es publico, continuo, oral y contradictorio. Solo podra interrumpirse en los casos expresamente senalados en este Codigo."},
+    ]
+  },
+  {
+    "id": "ley-1390-2021",
+    "tipo": "ley",
+    "titulo": "Ley 1390 — Ley de Fortalecimiento para la Lucha Contra la Corrupcion e Impunidad",
+    "area": "penal",
+    "fuente": "Asamblea Legislativa Plurinacional",
+    "fecha": "2021-07-27",
+    "resumen": "Modifica el Codigo Penal para ampliar tipos penales de corrupcion, incrementar penas, eliminar la prescripcion en delitos de corrupcion graves y fortalecer mecanismos de recuperacion de bienes del Estado.",
+    "articulos": [
+      {"num": "1", "texto": "La presente Ley tiene por objeto fortalecer la lucha contra la corrupcion e impunidad, modificando y complementando disposiciones del Codigo Penal y otras leyes relacionadas."},
+      {"num": "3", "texto": "Los delitos de corrupcion son imprescriptibles cuando el danio economico causado al Estado sea igual o mayor a UFV 200.000 (doscientas mil Unidades de Fomento de Vivienda)."},
+      {"num": "5", "texto": "El delito de peculado sera sancionado con privacion de libertad de cinco (5) a diez (10) anos. Si el monto desfalcado supera las UFV 200.000, la pena sera de diez (10) a quince (15) anos."},
+      {"num": "7", "texto": "El enriquecimiento ilicito de funcionarios publicos sera sancionado con privacion de libertad de cinco (5) a diez (10) anos, mas la confiscacion de los bienes obtenidos ilicitamente."},
+      {"num": "9", "texto": "Se crea el Registro de Servidores Publicos Sancionados por Corrupcion, de acceso publico, que impedira a los registrados ejercer funciones publicas por un periodo de diez (10) anos."},
+    ]
+  },
+  {
+    "id": "ley-1391-2021",
+    "tipo": "ley",
+    "titulo": "Ley 1391 — Modificaciones al Codigo de Procedimiento Penal",
+    "area": "penal",
+    "fuente": "Asamblea Legislativa Plurinacional",
+    "fecha": "2021-07-27",
+    "resumen": "Modifica el Codigo de Procedimiento Penal para fortalecer garantias procesales, regular el uso de tecnologia en procesos penales y establecer nuevos procedimientos para casos de corrupcion.",
+    "articulos": [
+      {"num": "1", "texto": "Se modifican los articulos del Codigo de Procedimiento Penal relativos a plazos procesales, medidas cautelares y procedimientos especiales para delitos de corrupcion."},
+      {"num": "4", "texto": "Las audiencias en procesos penales podran realizarse de manera virtual o semipresencial cuando las circunstancias lo justifiquen, garantizando la publicidad del acto."},
+      {"num": "6", "texto": "En delitos de corrupcion, la detencion preventiva podra extenderse hasta cuarenta y ocho (48) meses cuando exista riesgo de fuga o de obstaculizacion de la investigacion debidamente fundamentado."},
+    ]
+  },
+  {
+    "id": "ley-1443-2022",
+    "tipo": "ley",
+    "titulo": "Ley 1443 — Ley contra el Acoso y Violencia Politica hacia las Mujeres (actualizada 2022)",
+    "area": "constitucional",
+    "fuente": "Asamblea Legislativa Plurinacional",
+    "fecha": "2022-03-08",
+    "resumen": "Actualiza la Ley 243 para fortalecer la proteccion contra el acoso y violencia politica hacia las mujeres en el ejercicio de funciones publicas y politicas.",
+    "articulos": [
+      {"num": "1", "texto": "La presente Ley tiene por objeto establecer mecanismos de prevencion, atencion, sancion y erradicacion del acoso y violencia politica hacia las mujeres candidatas, electas, designadas o en ejercicio de la funcion politica publica."},
+      {"num": "7", "texto": "El acoso politico hacia las mujeres es sancionado con privacion de libertad de dos (2) a cinco (5) anos. La violencia politica con penas de tres (3) a ocho (8) anos."},
+      {"num": "10", "texto": "Las instituciones publicas y privadas tienen la obligacion de implementar protocolos de prevencion y atencion del acoso y violencia politica hacia las mujeres."},
+    ]
+  },
+  {
+    "id": "ley-548-2014",
+    "tipo": "codigo",
+    "titulo": "Ley 548 — Codigo Nino, Nina y Adolescente",
+    "area": "familiar",
+    "fuente": "Asamblea Legislativa Plurinacional",
+    "fecha": "2014-07-17",
+    "resumen": "Establece el sistema de proteccion integral de ninos, ninas y adolescentes en Bolivia, regulando sus derechos, garantias, responsabilidad penal juvenil y medidas de proteccion.",
+    "articulos": [
+      {"num": "1", "texto": "El presente Codigo tiene por objeto establecer y regular el regimen de proteccion integral que el Estado y la sociedad deben garantizar a toda nina, nino y adolescente."},
+      {"num": "5", "texto": "Son principios rectores: el interes superior de la nina, nino y adolescente; la prioridad absoluta; la igualdad y no discriminacion; la corresponsabilidad; y la participacion."},
+      {"num": "12", "texto": "Toda nina, nino y adolescente tiene derecho a conocer a sus padres y a ser cuidado por ellos, a vivir con su familia, a mantener relaciones personales y contacto directo con ambos progenitores."},
+      {"num": "155", "texto": "La edad minima de responsabilidad penal es de catorce (14) anos. Los adolescentes entre 14 y 18 anos que cometan infracciones a la ley penal estaran sujetos a medidas socio-educativas."},
+      {"num": "268", "texto": "Las medidas socio-educativas aplicables a adolescentes son: amonestacion, orientacion y apoyo familiar, servicio a la comunidad, libertad asistida, semi-libertad e internacion."},
+    ]
+  },
+  {
+    "id": "ley-439-2013",
+    "tipo": "codigo",
+    "titulo": "Codigo Procesal Civil — Ley 439",
+    "area": "civil",
+    "fuente": "Asamblea Legislativa Plurinacional",
+    "fecha": "2013-11-19",
+    "resumen": "Regula los procesos civiles en Bolivia bajo principios de oralidad, celeridad y economia procesal. Establece el proceso ordinario, monitorio, ejecutivo y voluntario.",
+    "articulos": [
+      {"num": "1", "texto": "El proceso civil tiene por objeto la efectivizacion de los derechos reconocidos por la ley sustantiva. Sus normas son de orden publico y de cumplimiento obligatorio."},
+      {"num": "4", "texto": "Los principios que rigen el proceso civil son: oralidad, inmediacion, concentracion, publicidad, saneamiento, buena fe procesal y celeridad."},
+      {"num": "142", "texto": "El plazo para interponer recurso de apelacion contra sentencias es de diez (10) dias computables desde la notificacion con la sentencia."},
+      {"num": "143", "texto": "El recurso de casacion procede contra las sentencias y autos de vista dictados por los Tribunales Departamentales de Justicia. El plazo para interponerlo es de treinta (30) dias."},
+      {"num": "362", "texto": "El proceso monitorio es aplicable para el cobro de deudas dinerarias liquidas, exigibles y de plazo vencido, que consten en documento."},
+      {"num": "379", "texto": "La demanda ejecutiva procede cuando la obligacion conste en titulo ejecutivo. Son titulos ejecutivos: el documento publico, la sentencia pasada en autoridad de cosa juzgada, el documento privado reconocido judicialmente."},
+      {"num": "397", "texto": "La demanda ordinaria se presenta por escrito y debe contener: la designacion del juez, datos del demandante y demandado, exposicion de los hechos, fundamentos de derecho y la peticion."},
+    ]
+  },
+  {
+    "id": "ley-1768-penal",
+    "tipo": "codigo",
+    "titulo": "Codigo Penal de Bolivia — Ley 1768",
+    "area": "penal",
+    "fuente": "Congreso Nacional",
+    "fecha": "1997-03-10",
+    "resumen": "Establece los delitos y penas en Bolivia. Incluye delitos contra la vida, integridad corporal, propiedad, familia, fe publica, economia nacional y administracion publica.",
+    "articulos": [
+      {"num": "251", "texto": "El que matare a otro sera sancionado con privacion de libertad de cinco (5) a veinte (20) anos."},
+      {"num": "252", "texto": "Sera sancionado con la pena de treinta (30) anos de presidio sin derecho a indulto, el que matare: a sus ascendientes, descendientes o conyuge o conviviente; con alevosía; por motivo futil o bajo pretexto de honor; en lugar de culto; con ensanamiento; por precio o promesa."},
+      {"num": "271", "texto": "El que causare a otro lesion corporal de la que resulte enfermedad o incapacidad de trabajo por mas de treinta dias, sera sancionado con privacion de libertad de uno a cuatro anos."},
+      {"num": "308", "texto": "El que con violencia o intimidacion, hubiera hecho sufrir a una persona acto sexual o penetracion sexual, sera sancionado con privacion de libertad de quince (15) a veinte (20) anos."},
+      {"num": "326", "texto": "El que se apoderare ilegitimamente de una cosa mueble ajena sera sancionado con privacion de libertad de uno a cinco anos."},
+      {"num": "331", "texto": "El que con fuerza en las cosas o con violencia o intimidacion en las personas entrare a un lugar habitado o sus dependencias para cometer un delito sera sancionado con privacion de libertad de dos a seis anos."},
+      {"num": "335", "texto": "El que mediante engano o abuso de confianza se apropiare o distrajere en perjuicio de otro, dinero, efectos o cualquier otra cosa mueble sera sancionado con privacion de libertad de uno a seis anos."},
+    ]
+  },
+  {
+    "id": "ley-1970-cpp",
+    "tipo": "codigo",
+    "titulo": "Codigo de Procedimiento Penal — Ley 1970",
+    "area": "penal",
+    "fuente": "Congreso Nacional",
+    "fecha": "1999-03-25",
+    "resumen": "Regula el proceso penal boliviano bajo principios acusatorios. Establece la investigacion fiscal, medidas cautelares, juicio oral y recursos. Modificado por Leyes 1173 y 1391.",
+    "articulos": [
+      {"num": "1", "texto": "Nadie sera condenado a pena alguna sin haber sido oido y juzgado previamente en proceso legal. Tampoco se podra ejecutar pena alguna en forma distinta a la prescrita en la ley."},
+      {"num": "7", "texto": "El imputado no podra ser obligado a declarar contra si mismo. El silencio del imputado no podra ser utilizado en su perjuicio."},
+      {"num": "225", "texto": "La detencion preventiva solo sera impuesta cuando sea absolutamente indispensable para asegurar la averiguacion de la verdad, el desarrollo del proceso y la aplicacion de la ley."},
+      {"num": "233", "texto": "Realizada la imputacion formal, el juez podra imponer detencion preventiva cuando concurra: la existencia de elementos de conviccion suficientes y peligro de fuga u obstaculizacion."},
+      {"num": "239", "texto": "La detencion preventiva cesara cuando: hayan desaparecido los motivos que la fundaron; su duracion exceda los plazos establecidos; el imputado acredite actividades laborales licitas."},
+      {"num": "329", "texto": "El juicio oral y publico se realizara con la presencia ininterrumpida de los jueces y las partes. Las audiencias seran grabadas."},
+    ]
+  },
+  {
+    "id": "ley-general-trabajo",
+    "tipo": "ley",
+    "titulo": "Ley General del Trabajo de Bolivia — LGT",
+    "area": "laboral",
+    "fuente": "Gobierno de Bolivia",
+    "fecha": "1942-12-08",
+    "resumen": "Regula las relaciones laborales en Bolivia. Establece derechos de los trabajadores: salario minimo, jornada laboral, vacaciones, aguinaldo, beneficios sociales, despido intempestivo y desahucio.",
+    "articulos": [
+      {"num": "1", "texto": "El trabajo es la fuente fundamental de la riqueza nacional. Goza de la proteccion del Estado y la ley."},
+      {"num": "13", "texto": "La jornada efectiva de trabajo no podra ser mayor de ocho horas por dia y de cuarenta y ocho horas por semana."},
+      {"num": "16", "texto": "El trabajo extraordinario y nocturno se pagara con el ciento por ciento de recargo. El trabajo en dias domingos y feriados con el doble."},
+      {"num": "19", "texto": "El salario minimo nacional sera fijado por el Gobierno cada ano. Ningun trabajador podra ganar menos del salario minimo."},
+      {"num": "23", "texto": "Los trabajadores que hubieren prestado servicios continuos durante noventa dias tienen derecho a quince dias de vacacion anual pagada."},
+      {"num": "48", "texto": "El trabajador que fuere retirado intempestivamente por el patrono tendra derecho a recibir una indemnizacion equivalente a un mes de salario por cada ano de trabajo continuo."},
+      {"num": "52", "texto": "El desahucio consiste en el aviso previo que debe darse con noventa dias de anticipacion para dar por terminado el contrato de trabajo."},
+      {"num": "57", "texto": "Los trabajadores tienen derecho a percibir aguinaldo de navidad equivalente a un mes de salario, hasta el 25 de diciembre de cada ano."},
+    ]
+  },
+  {
+    "id": "ley-12760-civil",
+    "tipo": "codigo",
+    "titulo": "Codigo Civil de Bolivia — Ley 12760",
+    "area": "civil",
+    "fuente": "Congreso Nacional",
+    "fecha": "1976-08-06",
+    "resumen": "Regula las relaciones civiles en Bolivia: personas, bienes, contratos, obligaciones, sucesiones, derechos reales y prescripcion.",
+    "articulos": [
+      {"num": "1", "texto": "La ley se aplica a todos los casos comprendidos en su letra o en su espiritu. A falta de ley aplicable al caso, se recurre a los principios generales del derecho y a la equidad."},
+      {"num": "519", "texto": "El contrato tiene fuerza de ley entre las partes contratantes. No puede ser disuelto sino por mutuo consentimiento o por las causas autorizadas por la ley."},
+      {"num": "544", "texto": "Son elementos esenciales del contrato: el consentimiento de las partes, el objeto cierto que forme la materia del compromiso, la causa licita."},
+      {"num": "549", "texto": "La nulidad del contrato procede por: falta de objeto, ilicitud de la causa, lesion enorme, incapacidad de las partes, falta de forma cuando la ley la exige."},
+      {"num": "568", "texto": "La prescripcion ordinaria de las acciones personales es de cinco anos. La de acciones reales inmobiliarias es de diez anos."},
+      {"num": "584", "texto": "La compraventa es un contrato por el cual el vendedor transfiere la propiedad de una cosa al comprador mediante el pago de un precio en dinero."},
+      {"num": "667", "texto": "El arrendamiento es el contrato por el cual una de las partes se obliga a conceder a la otra el uso de una cosa, a cambio de una renta o alquiler."},
+      {"num": "1000", "texto": "La hipoteca es un derecho real de garantia constituido sobre bienes inmuebles para asegurar el cumplimiento de una obligacion."},
+    ]
+  },
+  {
+    "id": "ley-045-2010",
+    "tipo": "ley",
+    "titulo": "Ley 045 — Ley Contra el Racismo y Toda Forma de Discriminacion",
+    "area": "constitucional",
+    "fuente": "Asamblea Legislativa Plurinacional",
+    "fecha": "2010-10-08",
+    "resumen": "Establece mecanismos y procedimientos para la prevencion y sancion de actos de racismo y discriminacion en Bolivia, protegiendo a todas las personas sin distincion.",
+    "articulos": [
+      {"num": "1", "texto": "La presente Ley tiene por objeto eliminar conductas de racismo y toda forma de discriminacion y consolidar politicas publicas de proteccion y prevencion de delitos de racismo y discriminacion."},
+      {"num": "5", "texto": "Se entiende por discriminacion toda distincion, exclusion, restriccion o preferencia basada en motivos de sexo, color, edad, orientacion sexual, identidad de genero, origen, cultura, nacionalidad, idioma, religion, ideologia, condicion economica o social, discapacidad u otros que tengan por objetivo anular el reconocimiento de derechos."},
+      {"num": "23", "texto": "El racismo y la discriminacion seran sancionados con privacion de libertad de uno a cinco anos. Si el hecho es cometido por servidor publico, la pena se incrementara en un tercio."},
+    ]
+  },
+  {
+    "id": "ley-2341-admin",
+    "tipo": "ley",
+    "titulo": "Ley de Procedimiento Administrativo — Ley 2341",
+    "area": "administrativo",
+    "fuente": "Congreso Nacional",
+    "fecha": "2002-04-23",
+    "resumen": "Regula la actividad administrativa del Estado boliviano, estableciendo principios, procedimientos, recursos administrativos y la responsabilidad del Estado.",
+    "articulos": [
+      {"num": "1", "texto": "La presente Ley regula la actividad administrativa y el procedimiento administrativo del Poder Ejecutivo, garantizando los derechos de los administrados."},
+      {"num": "4", "texto": "La actividad administrativa se rige por los principios de: legalidad, buena fe, proporcionalidad, publicidad, transparencia, gratuidad, eficacia y eficiencia."},
+      {"num": "65", "texto": "Los recursos administrativos son: el recurso de revocatoria ante la misma autoridad que dicto el acto, y el recurso jerarquico ante la autoridad superior."},
+      {"num": "66", "texto": "El plazo para interponer recurso de revocatoria es de diez (10) dias habiles desde la notificacion con el acto administrativo."},
+      {"num": "68", "texto": "El recurso jerarquico debe interponerse dentro de los diez (10) dias habiles de notificado el acto que resuelve el recurso de revocatoria."},
+    ]
+  },
+]
+
+output = {
+    "generado": datetime.now().isoformat(),
+    "total_documentos": len(normas),
+    "documentos": normas
+}
+
+output_path = "normas_bolivia.json"
+with open(output_path, "w", encoding="utf-8") as f:
+    json.dump(output, f, ensure_ascii=False, indent=2)
+
+print(f"Generadas {len(normas)} normas con {sum(len(n['articulos']) for n in normas)} articulos totales")
