@@ -114,12 +114,10 @@ export class AnalyzerComponent {
     try {
       let texto = '';
 
-      if (ext === '.pdf') {
-        texto = await this.extractFromPdf(file);
-      } else if (ext === '.docx' || ext === '.doc') {
-        texto = await this.extractFromDocx(file);
-      } else if (ext === '.txt') {
+      if (ext === '.txt') {
         texto = await file.text();
+      } else {
+        texto = await this.extractFromBackend(file);
       }
 
       if (!texto.trim()) {
@@ -142,43 +140,19 @@ export class AnalyzerComponent {
     }
   }
 
-  private async extractFromPdf(file: File): Promise<string> {
-    try {
-      // Usar pdf.js para extraer texto
-      const pdfjsLib = await import('pdfjs-dist');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-      let fullText = '';
-      const maxPages = Math.min(pdf.numPages, 50); // Max 50 paginas
-
-      for (let i = 1; i <= maxPages; i++) {
-        const page    = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const pageText = content.items
-          .map((item: any) => item.str)
-          .join(' ');
-        fullText += pageText + '\n\n';
-      }
-
-      return fullText.trim();
-    } catch (err) {
-      throw new Error('Error leyendo PDF: ' + (err as Error).message);
+  private async extractFromBackend(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const resp = await fetch(
+      'https://juris-free-backend.onrender.com/api/v1/documents/extract-text',
+      { method: 'POST', body: formData }
+    );
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.detail || 'Error en el servidor');
     }
-  }
-
-  private async extractFromDocx(file: File): Promise<string> {
-    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
-    if (ext === '.doc') {
-      throw new Error('El formato .doc antiguo no está soportado en el navegador. Por favor convierte el archivo a .docx o .pdf y vuelve a intentarlo.');
-    }
-    const mammoth     = await import('mammoth');
-    const arrayBuffer = await file.arrayBuffer();
-    const lib = (mammoth as any).default || mammoth;
-    const result = await lib.extractRawText({ arrayBuffer });
-    return result.value || '';
+    const data = await resp.json();
+    return data.text || '';
   }
 
   private async analyzeDocument(texto: string, nombre: string): Promise<void> {
