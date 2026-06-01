@@ -33,8 +33,35 @@ def download_muestras():
     except Exception as e:
         logging.error(f"Error descargando muestras: {e}")
 
+async def run_daily_scraper():
+    """Corre el scraper de Gaceta Oficial cada 24 horas"""
+    import asyncio
+    while True:
+        try:
+            await asyncio.sleep(24 * 60 * 60)  # Esperar 24 horas
+            logging.info("Iniciando scraper diario de Gaceta Oficial...")
+            from ingestion.scraper_gaceta import run_scraper
+            run_scraper(dias=1)
+            logging.info("Scraper diario completado")
+        except Exception as e:
+            logging.error(f"Error en scraper diario: {e}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import asyncio
+    logging.info("JURIS-FREE Bolivia API iniciando...")
+    logging.info(f"Gemini:     {'OK' if os.getenv('GEMINI_API_KEY') else 'FALTA'}")
+    logging.info(f"Groq:       {'OK' if os.getenv('GROQ_API_KEY') else 'FALTA'}")
+    logging.info(f"Cerebras:   {'OK' if os.getenv('CEREBRAS_API_KEY') else 'FALTA'}")
+    logging.info(f"OpenRouter: {'OK' if os.getenv('OPENROUTER_API_KEY') else 'FALTA'}")
+    logging.info(f"SambaNova:  {'OK' if os.getenv('SAMBANOVA_API_KEY') else 'FALTA'}")
+    download_muestras()
+    from .routes.muestras import build_index
+    idx = build_index()
+    logging.info(f"Muestras indexadas: {len(idx)} archivos Word")
+    # Iniciar scraper diario en background
+    asyncio.create_task(run_daily_scraper())
+    yield
     logging.info("JURIS-FREE Bolivia API iniciando...")
     logging.info(f"Gemini:     {'OK' if os.getenv('GEMINI_API_KEY') else 'FALTA'}")
     logging.info(f"Groq:       {'OK' if os.getenv('GROQ_API_KEY') else 'FALTA'}")
