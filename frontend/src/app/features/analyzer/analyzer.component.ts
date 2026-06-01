@@ -170,6 +170,10 @@ export class AnalyzerComponent {
   }
 
   private async extractFromDocx(file: File): Promise<string> {
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (ext === '.doc') {
+      throw new Error('El formato .doc antiguo no está soportado en el navegador. Por favor convierte el archivo a .docx o .pdf y vuelve a intentarlo.');
+    }
     const mammoth     = await import('mammoth');
     const arrayBuffer = await file.arrayBuffer();
     const lib = (mammoth as any).default || mammoth;
