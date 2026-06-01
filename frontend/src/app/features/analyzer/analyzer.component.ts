@@ -170,9 +170,10 @@ export class AnalyzerComponent {
   }
 
   private async extractFromDocx(file: File): Promise<string> {
-    const mammoth    = await import('mammoth');
+    const mammoth     = await import('mammoth');
     const arrayBuffer = await file.arrayBuffer();
-    const result     = await mammoth.extractRawText({ arrayBuffer });
+    const lib = (mammoth as any).default || mammoth;
+    const result = await lib.extractRawText({ arrayBuffer });
     return result.value || '';
   }
 
