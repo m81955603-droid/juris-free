@@ -21,17 +21,38 @@ def load_knowledge():
     global _knowledge_cache
     if _knowledge_cache is None:
         try:
+            # Intentar cargar desde HuggingFace primero
+            hf_token = os.getenv("HF_TOKEN")
+            hf_repo = os.getenv("HF_DATASET_REPO")
+            if hf_token and hf_repo:
+                try:
+                    from huggingface_hub import hf_hub_download
+                    path = hf_hub_download(
+                        repo_id=hf_repo,
+                        filename="normas_bolivia.json",
+                        repo_type="dataset",
+                        token=hf_token
+                    )
+                    with open(path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        _knowledge_cache = data.get('documentos', [])
+                    print(f"Normas cargadas desde HuggingFace: {len(_knowledge_cache)}")
+                    return _knowledge_cache
+                except Exception as e:
+                    print(f"No se pudo cargar desde HF, usando local: {e}")
+
+            # Fallback: archivo local
             if os.path.exists(NORMAS_FILE):
                 with open(NORMAS_FILE, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     _knowledge_cache = data.get('documentos', [])
+                print(f"Normas cargadas desde archivo local: {len(_knowledge_cache)}")
             else:
                 _knowledge_cache = []
         except Exception as e:
             print(f"Error cargando base de conocimiento: {e}")
             _knowledge_cache = []
     return _knowledge_cache
-
 
 class SearchResult(BaseModel):
     id: str
