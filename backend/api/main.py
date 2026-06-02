@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 
 def download_muestras():
     hf_token = os.getenv("HF_TOKEN")
-    hf_repo = os.getenv("HF_DATASET_REPO")
+    hf_repo = os.getenv("HF_MUESTRAS_REPO") or os.getenv("HF_DATASET_REPO")
     if not hf_token or not hf_repo:
         logging.info("HF_TOKEN o HF_DATASET_REPO no configurados, saltando descarga")
         return
