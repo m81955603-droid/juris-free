@@ -9,29 +9,28 @@ from .routes import llm, embeddings, health, library, muestras, cases, calendar,
 logging.basicConfig(level=logging.INFO)
 
 def download_muestras():
+    """Solo descarga el indice JSON, no los archivos fisicos"""
     hf_token = os.getenv("HF_TOKEN")
-    hf_repo = os.getenv("HF_MUESTRAS_REPO") or os.getenv("HF_DATASET_REPO")
+    hf_repo = os.getenv("HF_MUESTRAS_REPO")
     if not hf_token or not hf_repo:
-        logging.info("HF_TOKEN o HF_DATASET_REPO no configurados, saltando descarga")
+        logging.info("HF_MUESTRAS_REPO no configurado, saltando descarga")
         return
-    muestras_path = "/tmp/muestras"
-    if os.path.exists(muestras_path) and len(os.listdir(muestras_path)) > 10:
-        logging.info(f"Muestras ya descargadas en {muestras_path}")
-        return
-    logging.info(f"Descargando muestras desde {hf_repo}...")
-    logging.info(f"HF_TOKEN presente: {bool(hf_token)}, REPO: {hf_repo}")
     try:
-        from huggingface_hub import snapshot_download
-        snapshot_download(
-            repo_id=hf_repo,
-            repo_type="dataset",
-            local_dir=muestras_path,
-            token=hf_token,
-            ignore_patterns=["*.gitattributes", "*.md"]
-        )
-        logging.info("Muestras descargadas correctamente")
+        from huggingface_hub import hf_hub_download
+        import json
+        # Solo descargar el indice si existe
+        try:
+            path = hf_hub_download(
+                repo_id=hf_repo,
+                filename="indice.json",
+                repo_type="dataset",
+                token=hf_token
+            )
+            logging.info(f"Indice de muestras descargado desde {hf_repo}")
+        except Exception:
+            logging.info("No hay indice en HF, usando indice local")
     except Exception as e:
-        logging.error(f"Error descargando muestras: {e}")
+        logging.error(f"Error descargando indice: {e}")
 
 async def run_daily_scraper():
     """Corre el scraper de Gaceta Oficial cada 24 horas"""

@@ -56,11 +56,32 @@ class MuestraIndex(BaseModel):
 
 
 def build_index() -> list:
-    """Construye el indice de todos los archivos Word."""
+    """Carga el indice desde HuggingFace o archivo local."""
     global _index_cache
     if _index_cache is not None:
         return _index_cache
 
+    # Intentar cargar desde HuggingFace
+    hf_token = os.getenv("HF_TOKEN")
+    hf_repo = os.getenv("HF_MUESTRAS_REPO")
+    if hf_token and hf_repo:
+        try:
+            from huggingface_hub import hf_hub_download
+            path = hf_hub_download(
+                repo_id=hf_repo,
+                filename="indice.json",
+                repo_type="dataset",
+                token=hf_token
+            )
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                _index_cache = data.get("archivos", [])
+            print(f"Indice cargado desde HuggingFace: {len(_index_cache)} archivos")
+            return _index_cache
+        except Exception as e:
+            print(f"No se pudo cargar indice desde HF: {e}")
+
+    # Fallback: construir desde disco local
     index = []
     if not os.path.exists(MUESTRAS_BASE):
         return index
@@ -69,45 +90,36 @@ def build_index() -> list:
         carpeta_path = os.path.join(MUESTRAS_BASE, carpeta_principal)
         if not os.path.isdir(carpeta_path):
             continue
-
-        categoria  = CARPETA_CATEGORIA.get(carpeta_principal, carpeta_principal)
-        icono      = CARPETA_ICONO.get(carpeta_principal, "📄")
-
-        # Recorrer recursivamente
+        categoria = CARPETA_CATEGORIA.get(carpeta_principal, carpeta_principal)
+        icono = CARPETA_ICONO.get(carpeta_principal, "📄")
         for root, dirs, files in os.walk(carpeta_path):
             dirs.sort()
             for filename in sorted(files):
                 if not filename.lower().endswith(('.docx', '.doc')):
                     continue
-
-                full_path  = os.path.join(root, filename)
-                rel_path   = os.path.relpath(full_path, MUESTRAS_BASE)
+                full_path = os.path.join(root, filename)
+                rel_path = os.path.relpath(full_path, MUESTRAS_BASE)
                 subcarpeta = os.path.relpath(root, carpeta_path)
                 if subcarpeta == '.':
                     subcarpeta = ''
-
                 try:
                     tamanio = os.path.getsize(full_path)
                 except:
                     tamanio = 0
-
-                # ID unico basado en ruta
                 doc_id = rel_path.replace('\\', '/').replace(' ', '_')
-
                 index.append({
-                    "id":             doc_id,
-                    "nombre":         os.path.splitext(filename)[0],
-                    "carpeta":        carpeta_principal,
-                    "subcarpeta":     subcarpeta,
-                    "categoria":      categoria,
-                    "icono":          icono,
-                    "ruta_relativa":  rel_path.replace('\\', '/'),
-                    "tamanio":        tamanio
+                    "id": doc_id,
+                    "nombre": os.path.splitext(filename)[0],
+                    "carpeta": carpeta_principal,
+                    "subcarpeta": subcarpeta,
+                    "categoria": categoria,
+                    "icono": icono,
+                    "ruta_relativa": rel_path.replace('\\', '/'),
+                    "tamanio": tamanio
                 })
 
     _index_cache = index
     return index
-
 
 @router.get("/index")
 async def get_index():
@@ -177,24 +189,29 @@ async def search_muestras(
 
 @router.get("/download")
 async def download_muestra(ruta: str = Query(..., description="Ruta relativa del archivo")):
-    """Descarga un archivo Word por su ruta relativa."""
-    # Seguridad: no permitir path traversal
+    """Descarga un archivo Word — desde disco local o redirige a HuggingFace."""
     ruta_limpia = ruta.replace('..', '').replace('//', '/')
-    full_path   = os.path.join(MUESTRAS_BASE, ruta_limpia.replace('/', os.sep))
+    full_path = os.path.join(MUESTRAS_BASE, ruta_limpia.replace('/', os.sep))
 
-    if not os.path.exists(full_path):
-        raise HTTPException(404, f"Archivo no encontrado: {ruta}")
+    # Si existe en disco local, servirlo directamente
+    if os.path.exists(full_path) and full_path.startswith(MUESTRAS_BASE):
+        filename = os.path.basename(full_path)
+        return FileResponse(
+            path=full_path,
+            filename=filename,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
 
-    if not full_path.startswith(MUESTRAS_BASE):
-        raise HTTPException(403, "Acceso denegado")
+    # Si no existe localmente, buscar URL de HuggingFace en el indice
+    index = build_index()
+    for doc in index:
+        if doc.get("ruta_relativa") == ruta_limpia or doc.get("id") == ruta_limpia.replace(' ', '_'):
+            hf_url = doc.get("hf_url")
+            if hf_url:
+                from fastapi.responses import RedirectResponse
+                return RedirectResponse(url=hf_url)
 
-    filename = os.path.basename(full_path)
-    return FileResponse(
-        path        = full_path,
-        filename    = filename,
-        media_type  = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
-
+    raise HTTPException(404, f"Archivo no encontrado: {ruta}")
 
 @router.get("/stats")
 async def get_stats():
