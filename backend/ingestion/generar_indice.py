@@ -43,7 +43,7 @@ def generar_indice():
         for root, dirs, files in os.walk(carpeta_path):
             dirs.sort()
             for filename in sorted(files):
-                if not filename.lower().endswith(('.docx', '.doc')):
+                if not filename.lower().endswith('.docx'):
                     continue
                 full_path = Path(root) / filename
                 rel_path = full_path.relative_to(MUESTRAS_DIR)
