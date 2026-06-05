@@ -226,7 +226,7 @@ async def download_muestra(ruta: str = Query(..., description="Ruta relativa del
     hf_token = os.getenv("HF_TOKEN")
     hf_repo = os.getenv("HF_MUESTRAS_REPO", "maja-juridico/muestras-juridicas")
     ruta_hf = doc_found.get("ruta_relativa", ruta_limpia)
-    download_url = f"https://huggingface.co/datasets/{hf_repo}/resolve/main/{ruta_hf}"
+    download_url = f"https://huggingface.co/datasets/{hf_repo}/resolve/main/extraido/{ruta_hf}"
     
     import httpx
     headers = {"Authorization": f"Bearer {hf_token}"} if hf_token else {}
