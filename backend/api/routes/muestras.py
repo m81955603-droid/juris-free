@@ -207,9 +207,23 @@ async def download_muestra(ruta: str = Query(..., description="Ruta relativa del
     for doc in index:
         if doc.get("ruta_relativa") == ruta_limpia or doc.get("id") == ruta_limpia.replace(' ', '_'):
             hf_url = doc.get("hf_url")
-            if hf_url:
-                from fastapi.responses import RedirectResponse
-                return RedirectResponse(url=hf_url)
+            ruta_hf = doc.get("ruta_relativa", "")
+            if hf_url and ruta_hf:
+                import httpx
+                hf_token = os.getenv("HF_TOKEN")
+                headers = {"Authorization": f"Bearer {hf_token}"} if hf_token else {}
+                hf_repo = os.getenv("HF_MUESTRAS_REPO", "maja-juridico/muestras-juridicas")
+                download_url = f"https://huggingface.co/datasets/{hf_repo}/resolve/main/{ruta_hf}"
+                async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
+                    resp = await client.get(download_url, headers=headers)
+                    if resp.status_code == 200:
+                        from fastapi.responses import Response
+                        filename = os.path.basename(ruta_hf)
+                        return Response(
+                            content=resp.content,
+                            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+                        )
 
     raise HTTPException(404, f"Archivo no encontrado: {ruta}")
 
