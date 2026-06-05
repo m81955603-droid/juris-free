@@ -8,7 +8,8 @@ from huggingface_hub import HfApi
 
 HF_TOKEN = os.getenv("HF_TOKEN")
 HF_REPO = "maja-juridico/muestras-juridicas"
-MUESTRAS_DIR = Path(r"C:\proyectos\juris-free\muestras")
+_base = Path(r"C:\proyectos\juris-free\muestras")
+MUESTRAS_DIR = _base / "extraido" if (_base / "extraido").exists() else _base
 
 CARPETA_CATEGORIA = {
     "1.- MATERIAL ANTIGUO":                                "Material Antiguo",
@@ -71,7 +72,7 @@ def generar_indice():
 
     print(f"Total archivos indexados: {len(index)}")
 
-    output_path = MUESTRAS_DIR.parent / "backend" / "ingestion" / "indice_muestras.json"
+    output_path = Path(r"C:\proyectos\juris-free\backend\ingestion\indice_muestras.json")
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump({"total": len(index), "archivos": index}, f, ensure_ascii=False, indent=2)
     print(f"Indice guardado en {output_path}")
