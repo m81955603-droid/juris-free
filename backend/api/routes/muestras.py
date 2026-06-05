@@ -190,44 +190,58 @@ async def search_muestras(
 
 @router.get("/download")
 async def download_muestra(ruta: str = Query(..., description="Ruta relativa del archivo")):
-    """Descarga un archivo Word — desde disco local o redirige a HuggingFace."""
-    ruta_limpia = ruta.replace('..', '').replace('//', '/')
-    full_path = os.path.join(MUESTRAS_BASE, ruta_limpia.replace('/', os.sep))
+    """Descarga un archivo Word desde HuggingFace."""
+    ruta_limpia = ruta.replace('..', '').replace('//', '/').strip()
+    
+    # Buscar en indice
+    index = build_index()
+    doc_found = None
+    for doc in index:
+        if (doc.get("ruta_relativa", "").replace("\\", "/") == ruta_limpia or
+            doc.get("id", "") == ruta_limpia.replace(' ', '_')):
+            doc_found = doc
+            break
 
-    # Si existe en disco local, servirlo directamente
-    if os.path.exists(full_path) and full_path.startswith(MUESTRAS_BASE):
-        filename = os.path.basename(full_path)
+    if not doc_found:
+        # Intentar busqueda flexible
+        ruta_lower = ruta_limpia.lower()
+        for doc in index:
+            if doc.get("nombre", "").lower() in ruta_lower:
+                doc_found = doc
+                break
+
+    if not doc_found:
+        raise HTTPException(404, f"Archivo no encontrado: {ruta}")
+
+    # Servir desde disco local si existe
+    full_path = os.path.join(MUESTRAS_BASE, ruta_limpia.replace('/', os.sep))
+    if os.path.exists(full_path):
         return FileResponse(
             path=full_path,
-            filename=filename,
+            filename=os.path.basename(full_path),
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
 
-    # Si no existe localmente, buscar URL de HuggingFace en el indice
-    index = build_index()
-    for doc in index:
-        if doc.get("ruta_relativa") == ruta_limpia or doc.get("id") == ruta_limpia.replace(' ', '_'):
-            hf_url = doc.get("hf_url")
-            ruta_hf = doc.get("ruta_relativa", "")
-            if hf_url and ruta_hf:
-                import httpx
-                hf_token = os.getenv("HF_TOKEN")
-                headers = {"Authorization": f"Bearer {hf_token}"} if hf_token else {}
-                hf_repo = os.getenv("HF_MUESTRAS_REPO", "maja-juridico/muestras-juridicas")
-                download_url = f"https://huggingface.co/datasets/{hf_repo}/resolve/main/{ruta_hf}"
-                async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
-                    resp = await client.get(download_url, headers=headers)
-                    if resp.status_code == 200:
-                        from fastapi.responses import Response
-                        filename = os.path.basename(ruta_hf)
-                        return Response(
-                            content=resp.content,
-                            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
-                        )
-
-    raise HTTPException(404, f"Archivo no encontrado: {ruta}")
-
+    # Descargar desde HuggingFace
+    hf_token = os.getenv("HF_TOKEN")
+    hf_repo = os.getenv("HF_MUESTRAS_REPO", "maja-juridico/muestras-juridicas")
+    ruta_hf = doc_found.get("ruta_relativa", ruta_limpia)
+    download_url = f"https://huggingface.co/datasets/{hf_repo}/resolve/main/{ruta_hf}"
+    
+    import httpx
+    headers = {"Authorization": f"Bearer {hf_token}"} if hf_token else {}
+    async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
+        resp = await client.get(download_url, headers=headers)
+        if resp.status_code == 200:
+            from fastapi.responses import Response
+            filename = os.path.basename(ruta_hf)
+            return Response(
+                content=resp.content,
+                media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+            )
+    
+    raise HTTPException(404, f"Archivo no disponible en HuggingFace: {ruta}")
 @router.get("/stats")
 async def get_stats():
     """Estadisticas del repositorio."""
