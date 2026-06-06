@@ -130,20 +130,36 @@ Escribe tu consulta o usa las acciones rápidas para comenzar.`,
     this.messages.update(m => [...m, { id: assistantId, role: 'assistant', content: '', timestamp: new Date(), isStreaming: true }]);
     this.scrollBottom();
 
-    this.llm.chat(this.history, SYSTEM_PROMPT)
+    let fullContent = '';
+    this.llm.chatStream(this.history, SYSTEM_PROMPT)
       .pipe(takeUntil(this.destroy))
       .subscribe({
-        next: resp => {
-          this.history.push({ role: 'assistant', content: resp.content });
-          this.messages.update(m => m.map(msg =>
-            msg.id === assistantId
-              ? { ...msg, content: resp.content, provider: resp.provider, tokensUsed: resp.tokensUsed, isStreaming: false }
-              : msg
-          ));
-          this.currentProvider.set(resp.provider);
-          this.isLoading.set(false);
-          this.saveHistory();
-          this.scrollBottom();
+        next: data => {
+          if (data.error) {
+            this.messages.update(m => m.map(msg =>
+              msg.id === assistantId ? { ...msg, content: '**Error:** ' + data.error, isStreaming: false } : msg
+            ));
+            this.isLoading.set(false);
+            return;
+          }
+          if (!data.done) {
+            fullContent += data.chunk;
+            this.messages.update(m => m.map(msg =>
+              msg.id === assistantId ? { ...msg, content: fullContent, isStreaming: true } : msg
+            ));
+            this.scrollBottom();
+          } else {
+            this.history.push({ role: 'assistant', content: fullContent });
+            this.messages.update(m => m.map(msg =>
+              msg.id === assistantId
+                ? { ...msg, content: fullContent, provider: data.provider, tokensUsed: data.tokens, isStreaming: false }
+                : msg
+            ));
+            this.currentProvider.set(data.provider || '');
+            this.isLoading.set(false);
+            this.saveHistory();
+            this.scrollBottom();
+          }
         },
         error: err => {
           this.messages.update(m => m.map(msg =>

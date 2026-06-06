@@ -161,3 +161,61 @@ async def chat_completion(req: ChatRequest):
             logger.error(f"{p['name']} error: {e}")
 
     raise HTTPException(503, f"Todos los proveedores fallaron. Ultimo error: {last_err}")
+@router.post("/chat/stream")
+async def chat_stream(req: ChatRequest):
+    """Endpoint de streaming — devuelve tokens en tiempo real via SSE"""
+    from fastapi.responses import StreamingResponse
+    import json
+
+    providers = PROVIDERS.copy()
+    if req.provider:
+        pref = next((p for p in providers if p["name"] == req.provider), None)
+        if pref: providers = [pref] + [p for p in providers if p["name"] != req.provider]
+
+    system = req.system or ""
+    if req.useContext or req.docType:
+        system = system + get_contexto_generador(req.docType)
+
+    async def generate():
+        last_err = None
+        for p in providers:
+            if p["name"] in _rate_limited and time.time() < _rate_limited[p["name"]]:
+                continue
+            elif p["name"] in _rate_limited:
+                del _rate_limited[p["name"]]
+            try:
+                logger.info(f"Streaming con {p['name']}...")
+                if p["fmt"] == "gemini":
+                    content, tokens = await call_gemini(p, req.messages, system, req.maxTokens)
+                else:
+                    content, tokens = await call_openai(p, req.messages, system, req.maxTokens)
+
+                # Simular streaming dividiendo la respuesta en chunks
+                words = content.split(' ')
+                for i, word in enumerate(words):
+                    chunk = word + (' ' if i < len(words) - 1 else '')
+                    data = json.dumps({"chunk": chunk, "done": False, "provider": p["name"]})
+                    yield f"data: {data}\n\n"
+                    await asyncio.sleep(0.02)
+
+                # Señal de fin
+                data = json.dumps({"chunk": "", "done": True, "provider": p["name"], "model": p["model"], "tokens": tokens})
+                yield f"data: {data}\n\n"
+                return
+
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 429:
+                    _rate_limited[p["name"]] = time.time() + 900
+                last_err = str(e)
+            except Exception as e:
+                last_err = str(e)
+                logger.error(f"{p['name']} stream error: {e}")
+
+        error_data = json.dumps({"error": f"Todos los proveedores fallaron: {last_err}", "done": True})
+        yield f"data: {error_data}\n\n"
+
+    import asyncio
+    return StreamingResponse(generate(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no"
+    })
