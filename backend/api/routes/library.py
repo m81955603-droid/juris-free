@@ -3,43 +3,14 @@ JURIS-FREE Bolivia — API de Biblioteca Legal
 Busqueda en normativa boliviana: CPE, codigos, leyes, sentencias TCP
 """
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query
 from pydantic import BaseModel
 from typing import Optional, List
 import json
 import os
 import re
-import logging
-import httpx
 
-logger = logging.getLogger(__name__)
 router = APIRouter()
-
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", os.getenv("SUPABASE_KEY", ""))
-
-# Modelo multilingue, 384 dims — mismo usado en ingestion/generar_embeddings.py
-EMBED_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
-_embed_model = None
-
-
-def sb_headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-
-
-def get_embed_model():
-    """Carga el modelo de embeddings en memoria (lazy, una sola vez)."""
-    global _embed_model
-    if _embed_model is None:
-        from sentence_transformers import SentenceTransformer
-        logger.info(f"Cargando modelo de embeddings {EMBED_MODEL_NAME}...")
-        _embed_model = SentenceTransformer(EMBED_MODEL_NAME)
-        logger.info("Modelo de embeddings cargado OK")
-    return _embed_model
 
 # Cache en memoria del conocimiento legal
 _knowledge_cache = None
@@ -245,12 +216,32 @@ async def get_stats():
                     "Ley 603 Familias", "CPC Ley 439", "CPP Ley 1970", "LGT", "Ley 2341"]
     }
 
-
 # ─────────────────────────────────────────────────────────────
-# BUSQUEDA SEMANTICA (pgvector + sentence-transformers)
+# BUSQUEDA SEMANTICA — Gemini text-embedding-004 + pgvector
 # ─────────────────────────────────────────────────────────────
 
-class SemanticResult(BaseModel):
+import httpx as _httpx
+from pydantic import BaseModel as _BaseModel
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY", "")
+GEMINI_KEY   = os.getenv("GEMINI_API_KEY", "")
+
+GEMINI_EMBED_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+    "text-embedding-004:embedContent?key="
+)
+
+
+def _sb_headers():
+    return {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+    }
+
+
+class SemanticResult(_BaseModel):
     norma_titulo: str
     articulo: str
     texto: str
@@ -261,58 +252,57 @@ class SemanticResult(BaseModel):
 
 @router.get("/search-semantic", response_model=List[SemanticResult])
 async def search_semantic(
-    q: str = Query(..., min_length=3, description="Consulta en lenguaje natural"),
-    area: Optional[str] = Query(None, description="Filtrar por area legal"),
-    limit: int = Query(8, le=20)
+    q: str = Query(..., min_length=3),
+    area: Optional[str] = Query(None),
+    limit: int = Query(8, le=20),
 ):
-    """
-    Busqueda semantica sobre articulos legales bolivianos.
-    Encuentra articulos por significado, aunque no compartan palabras exactas
-    con la consulta (ej: 'despido injustificado en el embarazo' -> Ley 1152 / LGT).
-    """
+    """Busqueda semantica sobre articulos legales usando Gemini embeddings + pgvector."""
     if not SUPABASE_URL or not SUPABASE_KEY:
-        raise HTTPException(503, "Busqueda semantica no disponible: Supabase no configurado")
+        raise HTTPException(503, "Supabase no configurado")
+    if not GEMINI_KEY:
+        raise HTTPException(503, "GEMINI_API_KEY no configurado")
 
-    try:
-        model = get_embed_model()
-        embedding = model.encode(q).tolist()
-    except Exception as e:
-        logger.error(f"Error generando embedding: {e}")
-        raise HTTPException(500, f"Error generando embedding de la consulta: {e}")
+    # 1. Generar embedding de la query con Gemini
+    embed_url = GEMINI_EMBED_URL + GEMINI_KEY
+    embed_payload = {
+        "model": "models/text-embedding-004",
+        "content": {"parts": [{"text": q}]},
+        "taskType": "RETRIEVAL_QUERY",
+    }
+    async with _httpx.AsyncClient(timeout=20) as client:
+        r = await client.post(embed_url, json=embed_payload)
+        if r.status_code != 200:
+            raise HTTPException(502, f"Error Gemini embeddings: {r.text}")
+        embedding = r.json()["embedding"]["values"]
+        embedding = embedding[:1536]
 
-    payload = {
+    # 2. Buscar en pgvector via RPC
+    rpc_payload = {
         "query_embedding": embedding,
-        "match_threshold": 0.2,
+        "match_threshold": 0.3,
         "match_count": limit,
         "filter_area": area,
     }
-
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with _httpx.AsyncClient(timeout=20) as client:
         r = await client.post(
             f"{SUPABASE_URL}/rest/v1/rpc/match_legal_documents",
-            json=payload,
-            headers=sb_headers(),
+            json=rpc_payload,
+            headers=_sb_headers(),
         )
-
-    if r.status_code != 200:
-        logger.error(f"Error en match_legal_documents: {r.status_code} {r.text}")
-        raise HTTPException(502, f"Error consultando Supabase: {r.text}")
+        if r.status_code != 200:
+            raise HTTPException(502, f"Error Supabase RPC: {r.text}")
 
     rows = r.json()
     results = []
     for row in rows:
-        meta = row.get("metadata") or {}
-        # metadata puede no venir en match_legal_documents (no esta en el SELECT actual);
-        # usamos title como fallback para extraer norma + articulo
         title = row.get("title", "")
-        norma_titulo, _, articulo_part = title.partition(" — Art. ")
+        norma_titulo, _, articulo = title.partition(" — Art. ")
         results.append(SemanticResult(
             norma_titulo=norma_titulo or title,
-            articulo=articulo_part or meta.get("articulo_num", ""),
+            articulo=articulo,
             texto=row.get("body", ""),
             area=row.get("area"),
             tipo=row.get("type"),
             similitud=round(row.get("similarity", 0.0), 4),
         ))
-
     return results
