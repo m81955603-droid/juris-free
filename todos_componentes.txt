@@ -1,0 +1,4873 @@
+=== C:\proyectos\juris-free\frontend\src\app\features\analyzer\analyzer.component.html ===
+<div class="analyzer-layout">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Analisis de Documentos</h1>
+      <p class="page-sub">Sube PDF o Word - la IA analiza, resume y responde tus preguntas</p>
+    </div>
+    @if (step() === "ready") {
+      <button class="btn-ghost" (click)="resetUpload()">Analizar otro</button>
+    }
+  </header>
+
+  <div class="main-content">
+
+    @if (step() === "upload") {
+      <div class="upload-view">
+        <div class="drop-zone" [class.drag-over]="dragOver()"
+             (dragover)="onDragOver($event)" (dragleave)="onDragLeave()"
+             (drop)="onDrop($event)" (click)="fileInput.click()">
+          <input #fileInput type="file" accept=".pdf,.docx,.doc,.txt" style="display:none" (change)="onFileSelected($event)">
+          <div class="drop-content">
+            <div class="drop-icons">
+              <span class="file-icon pdf">PDF</span>
+              <span class="file-icon word">DOC</span>
+              <span class="file-icon txt">TXT</span>
+            </div>
+            <h3>Arrastra tu documento aqui</h3>
+            <p>o haz clic para seleccionar</p>
+            <p class="drop-hint">PDF · Word (.docx) · Texto (.txt) · Maximo 20MB</p>
+          </div>
+        </div>
+        <div class="upload-features">
+          <h4>Que puede analizar la IA?</h4>
+          <div class="features-grid">
+            <div class="feature-item"><span class="feat-icon">📋</span><div><p class="feat-title">Contratos</p><p class="feat-desc">Obligaciones, riesgos, clausulas, plazos</p></div></div>
+            <div class="feature-item"><span class="feat-icon">⚖</span><div><p class="feat-title">Demandas</p><p class="feat-desc">Petitorio, fundamentos, articulos citados</p></div></div>
+            <div class="feature-item"><span class="feat-icon">🏛</span><div><p class="feat-title">Sentencias</p><p class="feat-desc">Fallo, argumentos, apelabilidad</p></div></div>
+            <div class="feature-item"><span class="feat-icon">📜</span><div><p class="feat-title">Poderes</p><p class="feat-desc">Facultades, vigencia, limitaciones</p></div></div>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (step() === "analyzing") {
+      <div class="analyzing-view">
+        <div class="file-card">
+          <span class="file-card-icon">{{ fileType() === ".pdf" ? "📕" : "📘" }}</span>
+          <div>
+            <p class="file-card-name">{{ fileName() }}</p>
+            <p class="file-card-size">{{ formatSize(fileSize()) }}</p>
+          </div>
+        </div>
+        <div class="progress-steps">
+          <div class="prog-step done"><span class="prog-dot"></span><span>Archivo cargado</span></div>
+          <div class="prog-step active"><span class="prog-dot spinning"></span><span>Analizando con IA...</span></div>
+          <div class="prog-step"><span class="prog-dot"></span><span>Preparando resumen</span></div>
+        </div>
+        <p class="analyzing-hint">Esto puede tomar 10-20 segundos</p>
+      </div>
+    }
+
+    @if (step() === "ready") {
+      <div class="result-view">
+        <div class="file-info-bar">
+          <span class="file-badge">{{ fileType() === ".pdf" ? "PDF" : "Word" }}</span>
+          <span class="file-name">{{ fileName() }}</span>
+          <span class="file-size">{{ formatSize(fileSize()) }}</span>
+          @if (analysis()) {
+            <span class="doc-type-badge">{{ analysis()!.tipo }}</span>
+          }
+        </div>
+
+        <div class="tabs">
+          <button class="tab" [class.active]="activeTab() === 'resumen'" (click)="activeTab.set('resumen')">Resumen</button>
+          <button class="tab" [class.active]="activeTab() === 'chat'"    (click)="activeTab.set('chat')">Preguntas</button>
+          <button class="tab" [class.active]="activeTab() === 'export'"  (click)="activeTab.set('export')">Exportar</button>
+        </div>
+
+        @if (activeTab() === "resumen" && analysis()) {
+          <div class="resumen-view">
+            <div class="resumen-card main">
+              <h3>Resumen ejecutivo</h3>
+              <p>{{ analysis()!.resumen }}</p>
+            </div>
+            <div class="resumen-grid">
+              @if (analysis()!.partes.length > 0) {
+                <div class="resumen-card">
+                  <h4>Partes</h4>
+                  <ul>@for (p of analysis()!.partes; track p) { <li>{{ p }}</li> }</ul>
+                </div>
+              }
+              @if (analysis()!.fechas.length > 0) {
+                <div class="resumen-card">
+                  <h4>Fechas importantes</h4>
+                  <ul>@for (f of analysis()!.fechas; track f) { <li>{{ f }}</li> }</ul>
+                </div>
+              }
+              @if (analysis()!.montos.length > 0) {
+                <div class="resumen-card">
+                  <h4>Montos</h4>
+                  <ul>@for (m of analysis()!.montos; track m) { <li>{{ m }}</li> }</ul>
+                </div>
+              }
+              @if (analysis()!.articulos.length > 0) {
+                <div class="resumen-card">
+                  <h4>Articulos citados</h4>
+                  <ul>@for (art of analysis()!.articulos; track art) { <li>{{ art }}</li> }</ul>
+                </div>
+              }
+            </div>
+            @if (analysis()!.riesgos.length > 0) {
+              <div class="resumen-card riesgos">
+                <h4>Puntos de atencion</h4>
+                <ul>@for (r of analysis()!.riesgos; track r) { <li>{{ r }}</li> }</ul>
+              </div>
+            }
+            @if (analysis()!.siguiente) {
+              <div class="resumen-card siguiente">
+                <h4>Recomendacion</h4>
+                <p>{{ analysis()!.siguiente }}</p>
+              </div>
+            }
+            <div class="sugeridas">
+              <p class="sugeridas-title">Preguntas frecuentes:</p>
+              <div class="sugeridas-grid">
+                @for (q of getSugeridas(); track q) {
+                  <button class="sugerida-btn" (click)="askQuestion(q)">{{ q }}</button>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        @if (activeTab() === "chat") {
+          <div class="chat-view">
+            <div class="chat-messages">
+              @for (msg of chatMessages(); track msg.timestamp) {
+                <div class="chat-msg" [class.user]="msg.role === 'user'" [class.assistant]="msg.role === 'assistant'">
+                  <div class="chat-bubble">
+                    <div class="chat-content" [innerHTML]="renderMarkdown(msg.content)"></div>
+                    <span class="chat-time">{{ msg.timestamp | date:"HH:mm" }}</span>
+                  </div>
+                </div>
+              }
+              @if (isAnswering()) {
+                <div class="chat-msg assistant">
+                  <div class="chat-bubble">
+                    <div class="typing"><span></span><span></span><span></span></div>
+                  </div>
+                </div>
+              }
+            </div>
+            <div class="chat-input-area">
+              <div class="sugeridas-chips">
+                @for (q of getSugeridas(); track q) {
+                  <button class="chip" (click)="askQuestion(q)">{{ q }}</button>
+                }
+              </div>
+              <div class="input-row">
+                <textarea class="chat-input" [(ngModel)]="question"
+                  placeholder="Pregunta sobre el documento..."
+                  rows="2" [disabled]="isAnswering()" (keydown)="onKeydown($event)">
+                </textarea>
+                <button class="send-btn" (click)="askQuestion()" [disabled]="isAnswering() || !question.trim()">
+                  @if (isAnswering()) {
+                    <div class="send-spinner"></div>
+                  } @else { → }
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
+        @if (activeTab() === "export") {
+          <div class="export-view">
+            <div class="export-card" (click)="exportAnalysis()">
+              <span class="export-icon">📊</span>
+              <div><h3>Exportar analisis completo</h3><p>Word con resumen, partes, fechas y riesgos</p></div>
+              <span>→</span>
+            </div>
+            <div class="export-card" (click)="exportChat()">
+              <span class="export-icon">💬</span>
+              <div><h3>Exportar preguntas y respuestas</h3><p>Word con todas las consultas realizadas</p></div>
+              <span>→</span>
+            </div>
+          </div>
+        }
+
+      </div>
+    }
+
+  </div>
+</div>
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\analyzer\analyzer.component.scss ===
+:host { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+.analyzer-layout { display:flex; flex-direction:column; height:100vh; overflow:hidden; background:var(--bg); }
+
+.page-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 24px; background:var(--surf); border-bottom:1px solid var(--bord); flex-shrink:0;
+}
+.page-title { font-family:"Playfair Display",serif; font-size:1.1rem; font-weight:600; color:var(--txt); }
+.page-sub { font-size:.72rem; color:var(--txt-3); margin-top:2px; }
+
+.btn-ghost {
+  display:flex; align-items:center; gap:6px; background:none; border:1px solid var(--bord);
+  color:var(--txt-2); font-size:.78rem; padding:6px 12px; border-radius:8px; cursor:pointer;
+  font-family:'DM Sans',sans-serif; transition:.15s;
+  &:hover { background:var(--surf-2); color:var(--txt); }
+}
+
+.main-content { flex:1; overflow-y:auto; }
+
+/* Upload */
+.upload-view { padding:24px; max-width:700px; margin:0 auto; }
+
+.drop-zone {
+  border:2px dashed var(--bord-2); border-radius:16px; padding:48px 24px;
+  text-align:center; cursor:pointer; transition:.2s; background:var(--surf); margin-bottom:24px;
+  &:hover, &.drag-over { border-color:var(--gold); background:var(--gold-bg); }
+}
+.drop-content { display:flex; flex-direction:column; align-items:center; gap:12px; }
+.drop-icons { display:flex; gap:8px; margin-bottom:4px; }
+.file-icon {
+  padding:5px 10px; border-radius:6px; font-size:.72rem; font-weight:700; letter-spacing:.04em;
+  &.pdf  { background:#ffecec; color:#c0392b; }
+  &.word { background:#eaf0ff; color:#1a5296; }
+  &.txt  { background:#f4f2ee; color:#7a7268; }
+}
+.drop-zone h3 { font-family:"Playfair Display",serif; font-size:1rem; color:var(--txt); }
+.drop-zone p  { font-size:.82rem; color:var(--txt-3); }
+.drop-hint    { background:var(--surf-2); padding:4px 14px; border-radius:20px; font-size:.72rem !important; }
+
+.upload-features { background:var(--surf); border:1px solid var(--bord); border-radius:12px; padding:18px 20px;
+  h4 { font-size:.82rem; font-weight:500; color:var(--txt-2); margin-bottom:12px; }
+}
+.features-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.feature-item { display:flex; gap:10px; align-items:flex-start; }
+.feat-icon { font-size:1.2rem; flex-shrink:0; }
+.feat-title { font-size:.82rem; font-weight:500; color:var(--txt); margin-bottom:2px; }
+.feat-desc  { font-size:.72rem; color:var(--txt-3); line-height:1.4; }
+
+/* Analyzing */
+.analyzing-view {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:24px; padding:48px; height:100%;
+}
+.file-card {
+  display:flex; align-items:center; gap:12px; background:var(--surf); border:1px solid var(--bord);
+  border-radius:12px; padding:14px 20px;
+  .file-card-icon { font-size:2rem; }
+  .file-card-name { font-size:.88rem; font-weight:500; color:var(--txt); }
+  .file-card-size { font-size:.72rem; color:var(--txt-3); }
+}
+.progress-steps { display:flex; flex-direction:column; gap:10px; min-width:280px; }
+.prog-step {
+  display:flex; align-items:center; gap:10px; font-size:.82rem; color:var(--txt-3);
+  &.done   .prog-dot { background:var(--green); }
+  &.active .prog-dot { background:var(--prim); }
+  &.active { color:var(--txt); font-weight:500; }
+}
+.prog-dot {
+  width:10px; height:10px; border-radius:50%; background:var(--bord); flex-shrink:0;
+  &.spinning { animation:spin .8s linear infinite; border:2px solid var(--prim); border-top-color:transparent; background:transparent; width:12px; height:12px; }
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.analyzing-hint { font-size:.75rem; color:var(--txt-3); text-align:center; }
+
+/* Result */
+.result-view { display:flex; flex-direction:column; height:100%; }
+
+.file-info-bar {
+  display:flex; align-items:center; gap:10px; padding:10px 24px;
+  background:var(--surf); border-bottom:1px solid var(--bord); flex-shrink:0; flex-wrap:wrap;
+}
+.file-badge   { background:var(--surf-2); border:1px solid var(--bord); font-size:.72rem; padding:3px 8px; border-radius:6px; color:var(--txt-2); }
+.file-name    { font-size:.82rem; font-weight:500; color:var(--txt); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.file-size    { font-size:.72rem; color:var(--txt-3); font-family:'DM Mono',monospace; }
+.doc-type-badge { background:var(--gold-bg); border:1px solid rgba(184,135,42,.2); color:var(--gold); font-size:.72rem; padding:3px 10px; border-radius:20px; font-weight:500; text-transform:capitalize; }
+
+/* Tabs */
+.tabs { display:flex; gap:0; padding:0 24px; background:var(--surf); border-bottom:1px solid var(--bord); flex-shrink:0; }
+.tab {
+  padding:10px 18px; border:none; background:none; font-size:.82rem; font-family:'DM Sans',sans-serif;
+  color:var(--txt-3); cursor:pointer; border-bottom:2px solid transparent; transition:.15s; margin-bottom:-1px;
+  &:hover  { color:var(--txt-2); }
+  &.active { color:var(--prim); border-bottom-color:var(--prim); font-weight:500; }
+}
+
+/* Resumen */
+.resumen-view { padding:20px 24px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; }
+.resumen-card {
+  background:var(--surf); border:1px solid var(--bord); border-radius:10px; padding:14px 18px;
+  h3 { font-family:"Playfair Display",serif; font-size:.92rem; font-weight:600; color:var(--prim); margin-bottom:8px; }
+  h4 { font-size:.78rem; font-weight:500; color:var(--txt-2); margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em; }
+  p  { font-size:.84rem; color:var(--txt-2); line-height:1.6; }
+  ul { padding-left:16px; }
+  li { font-size:.82rem; color:var(--txt-2); margin:3px 0; }
+  &.main    { border-color:rgba(26,58,92,.15); background:rgba(26,58,92,.03); }
+  &.riesgos { border-color:rgba(192,57,43,.2); background:rgba(192,57,43,.03); h4 { color:#c0392b; } li { color:#8b2820; } }
+  &.siguiente { border-color:rgba(26,107,60,.2); background:rgba(26,107,60,.03); h4 { color:#1a6b3c; } p { color:#1a4a2a; } }
+}
+.resumen-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:10px; }
+
+.sugeridas { margin-top:4px; }
+.sugeridas-title { font-size:.75rem; color:var(--txt-3); margin-bottom:8px; text-transform:uppercase; letter-spacing:.04em; }
+.sugeridas-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:6px; }
+.sugerida-btn {
+  text-align:left; background:var(--surf); border:1px solid var(--bord); border-radius:8px;
+  padding:9px 13px; font-size:.78rem; color:var(--txt-2); cursor:pointer; font-family:'DM Sans',sans-serif;
+  transition:.15s; line-height:1.4;
+  &:hover { border-color:var(--prim-3); color:var(--prim); background:rgba(26,51,82,.03); }
+}
+
+/* Chat */
+.chat-view { display:flex; flex-direction:column; flex:1; overflow:hidden; }
+.chat-messages { flex:1; overflow-y:auto; padding:16px 24px; display:flex; flex-direction:column; gap:12px; }
+.chat-msg { display:flex; &.user { justify-content:flex-end; } }
+.chat-bubble {
+  max-width:78%; padding:10px 14px; border-radius:12px;
+  .chat-msg.assistant & { background:var(--surf); border:1px solid var(--bord); border-radius:3px 12px 12px 12px; }
+  .chat-msg.user & { background:var(--prim); color:white; border-radius:12px 3px 12px 12px; }
+}
+.chat-content { font-size:.85rem; line-height:1.6; ::ng-deep { strong { color:var(--prim); } .chat-msg.user & strong { color:rgba(255,255,255,.9); } code { font-family:'DM Mono',monospace; font-size:.8em; background:var(--surf-2); padding:1px 4px; border-radius:3px; } ul { padding-left:16px; } li { margin:3px 0; } } }
+.chat-msg.user .chat-content { color:white; }
+.chat-time { display:block; font-size:.66rem; color:var(--txt-3); margin-top:4px; font-family:'DM Mono',monospace; }
+.chat-msg.user .chat-time { color:rgba(255,255,255,.5); }
+.typing { display:flex; gap:4px; padding:4px 0; span { width:6px; height:6px; border-radius:50%; background:var(--bord-2); animation:dots 1.2s infinite; } span:nth-child(2) { animation-delay:.2s; } span:nth-child(3) { animation-delay:.4s; } }
+@keyframes dots { 0%,80%,100%{transform:scale(.7);opacity:.4} 40%{transform:scale(1);opacity:1} }
+
+.chat-input-area { padding:12px 24px 16px; background:var(--surf); border-top:1px solid var(--bord); }
+.sugeridas-chips { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
+.chip { background:var(--surf-2); border:1px solid var(--bord); border-radius:20px; padding:4px 11px; font-size:.72rem; color:var(--txt-3); cursor:pointer; font-family:'DM Sans',sans-serif; transition:.15s; &:hover { border-color:var(--prim-3); color:var(--prim); } }
+.input-row { display:flex; gap:8px; align-items:flex-end; background:var(--bg); border:1.5px solid var(--bord); border-radius:10px; padding:9px 9px 9px 14px; transition:.2s; &:focus-within { border-color:var(--prim-3); background:white; } }
+.chat-input { flex:1; border:none; background:none; font-size:.85rem; font-family:'DM Sans',sans-serif; color:var(--txt); resize:none; outline:none; max-height:80px; &::placeholder { color:var(--txt-3); } &:disabled { opacity:.55; } }
+.send-btn { width:32px; height:32px; border-radius:8px; border:none; background:var(--prim); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:.15s; &:hover:not(:disabled) { background:var(--prim-2); } &:disabled { opacity:.35; } }
+.send-spinner { width:13px; height:13px; border:2px solid rgba(255,255,255,.3); border-top-color:white; border-radius:50%; animation:spin .7s linear infinite; }
+
+/* Export */
+.export-view { padding:24px; display:flex; flex-direction:column; gap:10px; max-width:600px; }
+.export-card {
+  display:flex; align-items:center; gap:14px; background:var(--surf); border:1px solid var(--bord);
+  border-radius:12px; padding:16px 18px; cursor:pointer; transition:.15s;
+  &:hover { border-color:var(--prim-3); box-shadow:var(--shadow); transform:translateY(-1px); }
+  .export-icon { font-size:1.6rem; flex-shrink:0; }
+  h3 { font-size:.88rem; font-weight:500; color:var(--txt); margin-bottom:3px; }
+  p  { font-size:.76rem; color:var(--txt-3); }
+  .export-arrow { color:var(--txt-3); font-size:1.1rem; flex-shrink:0; }
+}
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\analyzer\analyzer.component.ts ===
+import { Component, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { LlmProxyService } from '../../core/services/llm-proxy.service';
+import { DocumentService } from '../../core/services/document.service';
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
+interface AnalysisResult {
+  tipo:       string;
+  resumen:    string;
+  partes:     string[];
+  fechas:     string[];
+  montos:     string[];
+  articulos:  string[];
+  riesgos:    string[];
+  siguiente:  string;
+}
+
+@Component({
+  selector:    'app-analyzer',
+  standalone:  true,
+  imports:     [CommonModule, FormsModule],
+  templateUrl: './analyzer.component.html',
+  styleUrls:   ['./analyzer.component.scss']
+})
+export class AnalyzerComponent {
+  private llm    = inject(LlmProxyService);
+  private docSvc = inject(DocumentService);
+
+  // Estado
+  step            = signal<'upload' | 'analyzing' | 'ready'>('upload');
+  dragOver        = signal(false);
+  isAnalyzing     = signal(false);
+  isAnswering     = signal(false);
+  fileName        = signal('');
+  fileSize        = signal(0);
+  fileType        = signal('');
+  extractedText   = signal('');
+  analysis        = signal<AnalysisResult | null>(null);
+  chatMessages    = signal<ChatMessage[]>([]);
+  question        = '';
+  activeTab       = signal<'resumen' | 'chat' | 'export'>('resumen');
+
+  // Preguntas sugeridas segun tipo de documento
+  readonly preguntasSugeridas: Record<string, string[]> = {
+    'contrato': [
+      '¿Cuáles son las obligaciones principales de cada parte?',
+      '¿Cuáles son las causales de resolución del contrato?',
+      '¿Hay clausulas abusivas o riesgosas?',
+      '¿Cuál es el plazo de vigencia?'
+    ],
+    'demanda': [
+      '¿Cuál es el petitorio principal?',
+      '¿Qué pruebas se ofrecen?',
+      '¿Están correctamente citados los articulos bolivianos?',
+      '¿Cuáles son los plazos procesales aplicables?'
+    ],
+    'sentencia': [
+      '¿Cuál es el fallo principal?',
+      '¿Qué argumentos usó el juez?',
+      '¿Es apelable esta sentencia?',
+      '¿Cuáles son los efectos juridicos?'
+    ],
+    'default': [
+      '¿Cuáles son los puntos más importantes?',
+      '¿Hay algún riesgo legal en este documento?',
+      '¿Qué normativa boliviana aplica?',
+      '¿Qué pasos debo seguir después?'
+    ]
+  };
+
+  // ── CARGA DE ARCHIVOS ─────────────────────────────
+
+  onDragOver(e: DragEvent): void { e.preventDefault(); this.dragOver.set(true); }
+  onDragLeave(): void { this.dragOver.set(false); }
+
+  onDrop(e: DragEvent): void {
+    e.preventDefault();
+    this.dragOver.set(false);
+    const files = e.dataTransfer?.files;
+    if (files?.length) this.processFile(files[0]);
+  }
+
+  onFileSelected(e: Event): void {
+    const input = e.target as HTMLInputElement;
+    if (input.files?.length) this.processFile(input.files[0]);
+  }
+
+  async processFile(file: File): Promise<void> {
+    const validTypes = ['.pdf', '.docx', '.doc', '.txt'];
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+
+    if (!validTypes.includes(ext)) {
+      alert('Formato no soportado. Usa PDF, Word (.docx) o texto (.txt)');
+      return;
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      alert('Archivo muy grande. Máximo 20MB.');
+      return;
+    }
+
+    this.fileName.set(file.name);
+    this.fileSize.set(file.size);
+    this.fileType.set(ext);
+    this.step.set('analyzing');
+    this.isAnalyzing.set(true);
+
+    try {
+      let texto = '';
+
+      if (ext === '.txt') {
+        texto = await file.text();
+      } else {
+        texto = await this.extractFromBackend(file);
+      }
+
+      if (!texto.trim()) {
+        alert('No se pudo extraer texto del documento. Puede ser un PDF escaneado (imagen).');
+        this.step.set('upload');
+        this.isAnalyzing.set(false);
+        return;
+      }
+
+      this.extractedText.set(texto);
+
+      // Analizar con IA
+      await this.analyzeDocument(texto, file.name);
+
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      alert('Error procesando el archivo: ' + msg);
+      this.step.set('upload');
+      this.isAnalyzing.set(false);
+    }
+  }
+
+  private async extractFromBackend(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const resp = await fetch(
+      'https://juris-free-backend.onrender.com/api/v1/documents/extract-text',
+      { method: 'POST', body: formData }
+    );
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.detail || 'Error en el servidor');
+    }
+    const data = await resp.json();
+    return data.text || '';
+  }
+
+  private async analyzeDocument(texto: string, nombre: string): Promise<void> {
+    const textoCorto = texto.substring(0, 12000);
+
+    const prompt = `Analiza este documento legal boliviano y responde SOLO en JSON valido con esta estructura exacta:
+
+{
+  "tipo": "tipo de documento (contrato/demanda/sentencia/poder/memorial/ley/otro)",
+  "resumen": "resumen ejecutivo en 3-4 oraciones claras",
+  "partes": ["lista de partes o personas mencionadas"],
+  "fechas": ["fechas importantes encontradas"],
+  "montos": ["montos o valores economicos encontrados"],
+  "articulos": ["articulos legales bolivianos citados"],
+  "riesgos": ["riesgos o puntos criticos identificados (maximo 4)"],
+  "siguiente": "recomendacion de que hacer a continuacion"
+}
+
+DOCUMENTO: "${nombre}"
+
+CONTENIDO:
+${textoCorto}
+
+Responde SOLO el JSON, sin texto adicional, sin markdown.`;
+
+    return new Promise((resolve) => {
+      this.llm.chat([{ role: 'user', content: prompt }]).subscribe({
+        next: resp => {
+          try {
+            // Limpiar respuesta
+            let json = resp.content.trim();
+            json = json.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+            const result = JSON.parse(json) as AnalysisResult;
+            this.analysis.set(result);
+
+            // Mensaje inicial del chat
+            this.chatMessages.set([{
+              role:      'assistant',
+              content:   `He analizado **${nombre}** exitosamente.\n\n**Tipo:** ${result.tipo}\n\n**Resumen:** ${result.resumen}\n\nPuedes hacerme cualquier pregunta sobre el documento.`,
+              timestamp: new Date()
+            }]);
+
+          } catch {
+            // Si falla el JSON, crear analisis basico
+            this.analysis.set({
+              tipo:      'documento legal',
+              resumen:   resp.content.substring(0, 400),
+              partes:    [],
+              fechas:    [],
+              montos:    [],
+              articulos: [],
+              riesgos:   [],
+              siguiente: 'Revisa el documento manualmente para mas detalles.'
+            });
+            this.chatMessages.set([{
+              role:      'assistant',
+              content:   'He procesado el documento. Puedes hacerme preguntas sobre su contenido.',
+              timestamp: new Date()
+            }]);
+          }
+
+          this.isAnalyzing.set(false);
+          this.step.set('ready');
+          resolve();
+        },
+        error: () => {
+          this.isAnalyzing.set(false);
+          this.step.set('upload');
+          resolve();
+        }
+      });
+    });
+  }
+
+  // ── CHAT SOBRE EL DOCUMENTO ───────────────────────
+
+  askQuestion(q?: string): void {
+    const pregunta = (q || this.question).trim();
+    if (!pregunta || this.isAnswering()) return;
+
+    this.question = '';
+    this.activeTab.set('chat');
+    this.isAnswering.set(true);
+
+    const userMsg: ChatMessage = { role: 'user', content: pregunta, timestamp: new Date() };
+    this.chatMessages.update(msgs => [...msgs, userMsg]);
+
+    const texto = this.extractedText();
+    const contexto = texto.substring(0, 10000);
+
+    const prompt = `Eres un abogado boliviano experto. Analiza el siguiente documento y responde la pregunta del usuario.
+
+DOCUMENTO:
+${contexto}
+
+PREGUNTA: ${pregunta}
+
+Responde de forma clara, citando partes especificas del documento cuando sea relevante. Si la pregunta involucra normativa boliviana, cita los articulos correspondientes.`;
+
+    this.llm.chat([{ role: 'user', content: prompt }]).subscribe({
+      next: resp => {
+        const assistantMsg: ChatMessage = {
+          role:      'assistant',
+          content:   resp.content,
+          timestamp: new Date()
+        };
+        this.chatMessages.update(msgs => [...msgs, assistantMsg]);
+        this.isAnswering.set(false);
+      },
+      error: err => {
+        this.chatMessages.update(msgs => [...msgs, {
+          role:      'assistant',
+          content:   'Error: ' + err.message,
+          timestamp: new Date()
+        }]);
+        this.isAnswering.set(false);
+      }
+    });
+  }
+
+  onKeydown(e: KeyboardEvent): void {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      this.askQuestion();
+    }
+  }
+
+  // ── EXPORT ────────────────────────────────────────
+
+  async exportAnalysis(): Promise<void> {
+    const a = this.analysis();
+    if (!a) return;
+
+    const content = `## Analisis del Documento: ${this.fileName()}
+
+**Tipo:** ${a.tipo}
+
+## Resumen
+${a.resumen}
+
+## Partes Involucradas
+${a.partes.map(p => `- ${p}`).join('\n') || '- No identificadas'}
+
+## Fechas Importantes
+${a.fechas.map(f => `- ${f}`).join('\n') || '- No identificadas'}
+
+## Montos y Valores
+${a.montos.map(m => `- ${m}`).join('\n') || '- No identificados'}
+
+## Articulos Legales Citados
+${a.articulos.map(art => `- ${art}`).join('\n') || '- No identificados'}
+
+## Puntos de Riesgo
+${a.riesgos.map(r => `- ${r}`).join('\n') || '- No identificados'}
+
+## Recomendacion
+${a.siguiente}
+
+---
+*Analisis generado por JURIS-FREE Bolivia*`;
+
+    await this.docSvc.generateLegalDocument({
+      titulo:   'Analisis — ' + this.fileName(),
+      contenido: content
+    });
+  }
+
+  async exportChat(): Promise<void> {
+    const msgs = this.chatMessages();
+    const content = msgs
+      .map(m => `**${m.role === 'user' ? 'Pregunta' : 'Respuesta'}:**\n${m.content}`)
+      .join('\n\n---\n\n');
+
+    await this.docSvc.generateLegalDocument({
+      titulo:   'Consultas — ' + this.fileName(),
+      contenido: content
+    });
+  }
+
+  // ── HELPERS ───────────────────────────────────────
+
+  resetUpload(): void {
+    this.step.set('upload');
+    this.fileName.set('');
+    this.extractedText.set('');
+    this.analysis.set(null);
+    this.chatMessages.set([]);
+    this.question = '';
+  }
+
+  getSugeridas(): string[] {
+    const tipo = this.analysis()?.tipo?.toLowerCase() || '';
+    if (tipo.includes('contrato')) return this.preguntasSugeridas['contrato'];
+    if (tipo.includes('demanda'))  return this.preguntasSugeridas['demanda'];
+    if (tipo.includes('sentencia')) return this.preguntasSugeridas['sentencia'];
+    return this.preguntasSugeridas['default'];
+  }
+
+  formatSize(bytes: number): string {
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  renderMarkdown(content: string): string {
+    if (!content) return '';
+    return content
+      .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code>$1</code>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/gs, '<ul>$&</ul>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+  }
+}
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\calendar\calendar.component.html ===
+<div class="cal-wrap">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <h3>⚠️ Próximos 7 días</h3>
+    <div *ngIf="vencimientos().length===0" class="side-empty">Sin vencimientos</div>
+    <div *ngFor="let ev of vencimientos()" class="venc-row"
+         [style.border-left-color]="colorTipo(ev.tipo)">
+      <p>{{ ev.titulo }}</p>
+      <small>{{ ev.fecha_inicio | date:'dd/MM' }} • {{ ev.hora }}</small>
+    </div>
+    <hr/>
+    <button (click)="vista.set('plazo')" class="side-btn">🧮 Calcular Plazo</button>
+    <button (click)="vista.set('nuevo')" class="side-btn primary">+ Nuevo Evento</button>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ── CABECERA MES ── -->
+    <div class="cal-head" *ngIf="vista()==='mes' || vista()==='lista'">
+      <button (click)="navMes(-1)" class="nav">‹</button>
+      <h2>{{ meses[mesActual()-1] }} {{ anioActual() }}</h2>
+      <button (click)="navMes(1)"  class="nav">›</button>
+      <div class="tabs">
+        <button [class.active]="vista()==='mes'"   (click)="vista.set('mes')">Mes</button>
+        <button [class.active]="vista()==='lista'" (click)="vista.set('lista')">Lista</button>
+      </div>
+    </div>
+
+    <!-- ── VISTA MES ── -->
+    <div class="cal-grid" *ngIf="vista()==='mes'">
+      <div class="dh" *ngFor="let d of ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']">{{ d }}</div>
+      <ng-container *ngFor="let dia of diasMes()">
+        <div *ngIf="dia===null" class="dc empty"></div>
+        <div *ngIf="dia!==null" class="dc" [class.hoy]="esHoy(dia.num)">
+          <span class="dn">{{ dia.num }}</span>
+          <div *ngFor="let ev of dia.eventos.slice(0,3)" class="ec"
+               [style.background]="colorTipo(ev.tipo)" [title]="ev.titulo">
+            {{ ev.hora }} {{ ev.titulo | slice:0:18 }}{{ ev.titulo.length>18?'…':'' }}
+          </div>
+          <div *ngIf="dia.eventos.length>3" class="ec-more">+{{ dia.eventos.length-3 }}</div>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- ── VISTA LISTA ── -->
+    <div class="lista" *ngIf="vista()==='lista'">
+      <div *ngIf="cargando()" class="loading">Cargando…</div>
+      <div *ngFor="let ev of eventos()" class="ev-row" [class.done]="ev.completado">
+        <div class="ev-bar" [style.background]="colorTipo(ev.tipo)"></div>
+        <div class="ev-data">
+          <p class="ev-tit">{{ ev.titulo }}</p>
+          <small>{{ ev.fecha_inicio | date:'dd/MM/yyyy' }} • {{ ev.hora }} • {{ ev.tipo }}</small>
+          <p *ngIf="ev.descripcion" class="ev-desc">{{ ev.descripcion }}</p>
+        </div>
+        <button *ngIf="!ev.completado" (click)="completar(ev.id)" class="btn-check">✓</button>
+      </div>
+      <p *ngIf="!cargando() && eventos().length===0" class="empty-txt">Sin eventos este mes.</p>
+    </div>
+
+    <!-- ── NUEVO EVENTO ── -->
+    <div class="panel-form" *ngIf="vista()==='nuevo'">
+      <div class="ph">
+        <button (click)="vista.set('mes')" class="btn-back">← Volver</button>
+        <h2>Nuevo Evento</h2>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="guardar()" class="ev-form">
+        <div class="fg full">
+          <label>Título *</label>
+          <input formControlName="titulo" placeholder="Audiencia preliminar…"/>
+        </div>
+        <div class="fg">
+          <label>Fecha *</label>
+          <input type="date" formControlName="fecha_inicio"/>
+        </div>
+        <div class="fg">
+          <label>Hora</label>
+          <input type="time" formControlName="hora"/>
+        </div>
+        <div class="fg">
+          <label>Tipo</label>
+          <select formControlName="tipo">
+            <option *ngFor="let t of tipos" [value]="t">{{ t | titlecase }}</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Color</label>
+          <input type="color" formControlName="color"/>
+        </div>
+        <div class="fg full">
+          <label>Descripción</label>
+          <textarea formControlName="descripcion" rows="2"></textarea>
+        </div>
+        <div class="f-actions">
+          <button type="button" (click)="vista.set('mes')" class="btn-sec">Cancelar</button>
+          <button type="submit" [disabled]="form.invalid || cargando()" class="btn-pri">
+            {{ cargando() ? 'Guardando…' : '💾 Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ── CALCULAR PLAZO ── -->
+    <div class="panel-form" *ngIf="vista()==='plazo'">
+      <div class="ph">
+        <button (click)="vista.set('mes')" class="btn-back">← Volver</button>
+        <h2>⚖️ Plazos Procesales Bolivianos</h2>
+      </div>
+      <form [formGroup]="plazoForm" (ngSubmit)="calcularPlazo()" class="ev-form">
+        <div class="fg">
+          <label>Tipo de plazo</label>
+          <select formControlName="tipo_plazo">
+            <option *ngFor="let p of plazosList" [value]="p">
+              {{ p.replace('_',' ') | titlecase }}
+            </option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Fecha de inicio</label>
+          <input type="date" formControlName="fecha_inicio"/>
+        </div>
+        <div class="f-actions">
+          <button type="submit" class="btn-pri">Calcular</button>
+        </div>
+      </form>
+
+      <div *ngIf="resultadoPlazo()" class="resultado">
+        <h3>Resultado del cálculo</h3>
+        <dl>
+          <dt>Norma</dt>          <dd>{{ resultadoPlazo().norma }}</dd>
+          <dt>Días hábiles</dt>   <dd>{{ resultadoPlazo().dias_habiles }}</dd>
+          <dt>Fecha de vence</dt> <dd class="vence">{{ resultadoPlazo().fecha_vence | date:'dd/MM/yyyy' }}</dd>
+          <dt>Días restantes</dt>
+          <dd [class.urgente]="resultadoPlazo().dias_quedan <= 3">
+            {{ resultadoPlazo().dias_quedan }} días
+          </dd>
+        </dl>
+        <button (click)="agregarEventoPlazo()" class="btn-pri mt">
+          📅 Agregar al calendario
+        </button>
+      </div>
+
+      <div class="tabla-ref">
+        <h3>Tabla de referencia</h3>
+        <table>
+          <thead><tr><th>Plazo</th><th>Días hábiles</th><th>Norma</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let p of plazosList">
+              <td>{{ p.replace('_',' ') }}</td>
+              <td>{{ plazos()[p]?.dias }}</td>
+              <td>{{ plazos()[p]?.norma }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\calendar\calendar.component.scss ===
+:host { display:block; }
+.cal-wrap { display:grid; grid-template-columns:260px 1fr; gap:1.5rem;
+            padding:1.5rem; max-width:1400px; margin:0 auto; }
+
+/* sidebar */
+.sidebar { background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+           padding:1rem; height:fit-content; position:sticky; top:1rem;
+           h3 { margin:0 0 .75rem; font-size:.95rem; font-weight:700; } }
+.venc-row { border-left:3px solid #dc2626; padding-left:.6rem; margin-bottom:.6rem;
+            p { margin:0; font-size:.83rem; font-weight:600; }
+            small { color:#6b7280; font-size:.75rem; } }
+.side-empty { color:#9ca3af; font-size:.83rem; margin:.5rem 0 1rem; }
+.side-btn { width:100%; padding:.45rem; border:1px solid #d1d5db; background:#f9fafb;
+            border-radius:8px; cursor:pointer; font-size:.83rem; margin-bottom:.4rem;
+            &.primary { background:#2563eb; color:#fff; border-color:#2563eb; font-weight:600; }
+            &:hover:not(.primary) { background:#f3f4f6; } }
+
+/* main */
+.main { min-width:0; }
+.cal-head { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem;
+            h2 { margin:0; flex:1; font-size:1.2rem; font-weight:700; } }
+.nav  { background:#f3f4f6; border:1px solid #d1d5db; border-radius:8px;
+        width:34px; height:34px; cursor:pointer; font-size:1.1rem;
+        &:hover { background:#e5e7eb; } }
+.tabs { display:flex; gap:.25rem;
+        button { padding:.3rem .7rem; border:1px solid #d1d5db; background:#f9fafb;
+                 border-radius:6px; cursor:pointer; font-size:.83rem;
+                 &.active { background:#2563eb; color:#fff; border-color:#2563eb; } } }
+
+/* cal grid */
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr);
+            border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+.dh { background:#f9fafb; padding:.4rem; text-align:center;
+      font-weight:600; font-size:.75rem; color:#6b7280; border-bottom:1px solid #e5e7eb; }
+.dc { min-height:90px; padding:.3rem; border:1px solid #f3f4f6; font-size:.75rem;
+      &.empty { background:#fafafa; }
+      &.hoy   { background:#eff6ff;
+                .dn { background:#2563eb; color:#fff; border-radius:50%;
+                      width:20px; height:20px; display:flex; align-items:center; justify-content:center; } } }
+.dn    { font-weight:600; font-size:.8rem; margin-bottom:.2rem; }
+.ec    { color:#fff; border-radius:3px; padding:1px 3px; font-size:.68rem;
+         margin-bottom:1px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.ec-more { font-size:.68rem; color:#6b7280; }
+
+/* lista */
+.lista { }
+.ev-row { display:flex; gap:.6rem; align-items:flex-start; padding:.6rem;
+          border:1px solid #e5e7eb; border-radius:8px; margin-bottom:.4rem; background:#fff;
+          &.done { opacity:.5; .ev-tit { text-decoration:line-through; } } }
+.ev-bar  { width:4px; border-radius:2px; align-self:stretch; flex-shrink:0; }
+.ev-data { flex:1; .ev-tit { margin:0; font-weight:600; font-size:.875rem; }
+           small { color:#6b7280; font-size:.78rem; }
+           .ev-desc { margin:.2rem 0 0; font-size:.83rem; color:#6b7280; } }
+.btn-check { background:#dcfce7; color:#16a34a; border:1px solid #86efac;
+             border-radius:6px; padding:.2rem .5rem; cursor:pointer; font-size:.8rem; }
+
+/* form */
+.panel-form { background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+              padding:1.5rem; max-width:560px; }
+.ph  { display:flex; align-items:center; gap:1rem; margin-bottom:1.25rem;
+       h2 { margin:0; font-size:1.1rem; font-weight:700; } }
+.ev-form { display:grid; grid-template-columns:1fr 1fr; gap:.9rem; }
+.fg  { display:flex; flex-direction:column; gap:.3rem;
+       &.full { grid-column:1/-1; }
+       label { font-weight:600; font-size:.83rem; color:#374151; }
+       input, select, textarea { padding:.45rem; border:1px solid #d1d5db;
+         border-radius:8px; font-size:.875rem;
+         &:focus { outline:none; border-color:#2563eb; } } }
+.f-actions { grid-column:1/-1; display:flex; gap:.6rem; justify-content:flex-end; }
+.btn-pri  { background:#2563eb; color:#fff; border:none; border-radius:8px;
+            padding:.45rem 1rem; cursor:pointer; font-weight:600;
+            &:disabled { opacity:.5; } &:hover:not(:disabled) { background:#1d4ed8; } }
+.btn-sec  { background:#f3f4f6; border:1px solid #d1d5db; border-radius:8px;
+            padding:.45rem 1rem; cursor:pointer; }
+.btn-back { background:none; border:none; color:#2563eb; cursor:pointer; font-weight:600; }
+
+/* resultado plazo */
+.resultado { background:#f0fdf4; border:1px solid #86efac; border-radius:10px;
+             padding:1rem; margin-top:1.25rem;
+             h3 { margin:0 0 .75rem; font-size:.95rem; } }
+dl   { display:grid; grid-template-columns:auto 1fr; gap:.35rem 1rem; font-size:.875rem; }
+dt   { font-weight:600; color:#6b7280; }
+dd   { margin:0; }
+.vence   { font-size:1rem; font-weight:700; color:#dc2626; }
+.urgente { color:#dc2626; font-weight:700; }
+.mt      { margin-top:.75rem; }
+
+/* tabla ref */
+.tabla-ref { margin-top:1.5rem; h3 { font-size:.95rem; margin-bottom:.5rem; }
+             table { width:100%; border-collapse:collapse; font-size:.83rem; }
+             th { background:#f9fafb; padding:.4rem; text-align:left; border-bottom:2px solid #e5e7eb; }
+             td { padding:.4rem; border-bottom:1px solid #f3f4f6; } }
+
+.loading  { text-align:center; padding:2rem; color:#9ca3af; }
+.empty-txt{ text-align:center; padding:1.5rem; color:#9ca3af; font-size:.875rem; }
+
+@media(max-width:768px) {
+  .cal-wrap { grid-template-columns:1fr; }
+  .cal-grid { font-size:.68rem; }
+  .dc       { min-height:55px; }
+  .ev-form  { grid-template-columns:1fr; }
+}
+
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\calendar\calendar.component.ts ===
+import { Component, OnInit, signal, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { CalendarService } from '../../core/services/calendar.service';
+
+@Component({
+  selector: 'app-calendar',
+  standalone: true,
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  templateUrl: './calendar.component.html',
+  styleUrls: ['./calendar.component.scss']
+})
+export class CalendarComponent implements OnInit {
+  eventos      = signal<any[]>([]);
+  vencimientos = signal<any[]>([]);
+  plazos       = signal<any>({});
+  cargando     = signal(false);
+  vista        = signal<'mes'|'lista'|'nuevo'|'plazo'>('mes');
+  resultadoPlazo = signal<any>(null);
+
+  hoy        = new Date();
+  mesActual  = signal(this.hoy.getMonth() + 1);
+  anioActual = signal(this.hoy.getFullYear());
+
+  form:      FormGroup;
+  plazoForm: FormGroup;
+
+  tipos  = ['audiencia','vencimiento','reunion','recordatorio','plazo','diligencia'];
+  meses  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+             'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  colores: Record<string,string> = {
+    audiencia:'#2563eb', vencimiento:'#dc2626', reunion:'#16a34a',
+    recordatorio:'#d97706', plazo:'#7c3aed', diligencia:'#0891b2'
+  };
+
+  diasMes = computed(() => {
+    const y = this.anioActual(), m = this.mesActual();
+    const primerDia = new Date(y, m-1, 1).getDay();
+    const total     = new Date(y, m, 0).getDate();
+    const celdas: Array<{num:number; eventos:any[]}|null> = [];
+    for (let i = 0; i < primerDia; i++) celdas.push(null);
+    for (let d = 1; d <= total; d++) {
+      const f = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      celdas.push({ num: d, eventos: this.eventos().filter(e => e.fecha_inicio === f) });
+    }
+    return celdas;
+  });
+
+  constructor(private svc: CalendarService, private fb: FormBuilder) {
+    this.form = this.fb.group({
+      titulo:       ['', Validators.required],
+      descripcion:  [''],
+      fecha_inicio: [this.hoy.toISOString().split('T')[0], Validators.required],
+      hora:         ['09:00'],
+      tipo:         ['audiencia', Validators.required],
+      color:        ['#2563eb']
+    });
+    this.plazoForm = this.fb.group({
+      tipo_plazo:   ['apelacion_civil', Validators.required],
+      fecha_inicio: [this.hoy.toISOString().split('T')[0], Validators.required]
+    });
+  }
+
+  ngOnInit() { this.cargar(); this.cargarVencimientos(); this.cargarPlazos(); }
+
+  cargar() {
+    this.cargando.set(true);
+    this.svc.list(this.mesActual(), this.anioActual()).subscribe({
+      next: r => { this.eventos.set(r.eventos || []); this.cargando.set(false); },
+      error: () => this.cargando.set(false)
+    });
+  }
+
+  cargarVencimientos() {
+    this.svc.proximosVencimientos(7).subscribe(r => this.vencimientos.set(r.vencimientos || []));
+  }
+
+  cargarPlazos() {
+    this.svc.getPlazos().subscribe(r => this.plazos.set(r.plazos || {}));
+  }
+
+  navMes(dir: number) {
+    let m = this.mesActual() + dir;
+    let a = this.anioActual();
+    if (m > 12) { m = 1;  a++; }
+    if (m < 1)  { m = 12; a--; }
+    this.mesActual.set(m); this.anioActual.set(a);
+    this.cargar();
+  }
+
+  guardar() {
+    if (this.form.invalid) return;
+    this.cargando.set(true);
+    this.svc.create(this.form.value).subscribe({
+      next: () => { this.form.reset(); this.cargar(); this.cargarVencimientos(); this.vista.set('mes'); },
+      error: () => this.cargando.set(false)
+    });
+  }
+
+  calcularPlazo() {
+    if (this.plazoForm.invalid) return;
+    const v = this.plazoForm.value;
+    this.svc.calcularPlazo(v.tipo_plazo, v.fecha_inicio)
+      .subscribe(r => this.resultadoPlazo.set(r));
+  }
+
+  agregarEventoPlazo() {
+    const r = this.resultadoPlazo();
+    if (!r) return;
+    this.svc.create(r.evento_sugerido).subscribe(() => {
+      this.cargar(); this.cargarVencimientos();
+      this.resultadoPlazo.set(null); this.vista.set('mes');
+    });
+  }
+
+  completar(id: string) {
+    this.svc.update(id, { completado: true }).subscribe(() => {
+      this.cargar(); this.cargarVencimientos();
+    });
+  }
+
+  colorTipo(t: string) { return this.colores[t] || '#6b7280'; }
+  esHoy(d: number) {
+    return d === this.hoy.getDate() &&
+           this.mesActual()  === this.hoy.getMonth()+1 &&
+           this.anioActual() === this.hoy.getFullYear();
+  }
+  get plazosList() { return Object.keys(this.plazos()); }
+}
+
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\cases\cases.component.html ===
+<div class="cases-wrap">
+
+  <!-- ── LISTA ── -->
+  <ng-container *ngIf="vista() === 'lista'">
+    <div class="toolbar">
+      <div class="toolbar-l">
+        <h1>⚖️ Gestión de Casos</h1>
+        <span class="chip-total">{{ casos().length }}</span>
+      </div>
+      <div class="toolbar-r">
+        <input [(ngModel)]="busqueda" (input)="cargar()"
+               placeholder="🔍 Buscar cliente o título…" class="inp-search"/>
+        <select [(ngModel)]="filtroEstado" (change)="cargar()" class="sel">
+          <option value="">Todos los estados</option>
+          <option *ngFor="let e of estados" [value]="e">{{ e | titlecase }}</option>
+        </select>
+        <select [(ngModel)]="filtroTipo" (change)="cargar()" class="sel">
+          <option value="">Todos los tipos</option>
+          <option *ngFor="let t of tipos" [value]="t">{{ t | titlecase }}</option>
+        </select>
+        <button (click)="vista.set('nuevo')" class="btn-primary">+ Nuevo Caso</button>
+      </div>
+    </div>
+
+    <div *ngIf="cargando()" class="loading">Cargando casos…</div>
+
+    <div class="grid" *ngIf="!cargando()">
+      <div *ngIf="casosFiltrados.length === 0" class="empty">
+        <div class="empty-icon">📂</div>
+        <p>No hay casos todavía.</p>
+        <button (click)="vista.set('nuevo')" class="btn-primary">Crear primer caso</button>
+      </div>
+
+      <div *ngFor="let caso of casosFiltrados" class="card" (click)="abrirDetalle(caso)">
+        <div class="card-head">
+          <span class="tipo-pill" [style.background]="colorTipo(caso.tipo)">{{ caso.tipo }}</span>
+          <span [class]="badgeEstado(caso.estado)">{{ caso.estado }}</span>
+        </div>
+        <h3>{{ caso.titulo }}</h3>
+        <p class="meta">👤 {{ caso.cliente }}</p>
+        <p class="meta" *ngIf="caso.numero_expediente">📄 Exp. {{ caso.numero_expediente }}</p>
+        <p class="meta" *ngIf="caso.juzgado">🏛️ {{ caso.juzgado }}</p>
+        <p class="meta">📅 {{ caso.fecha_inicio | date:'dd/MM/yyyy' }}</p>
+        <div class="card-actions" (click)="$event.stopPropagation()">
+          <button *ngIf="caso.estado==='activo'"
+                  (click)="cambiarEstado(caso.id!, 'cerrado')"
+                  class="btn-sm btn-warn">Cerrar</button>
+          <button *ngIf="caso.estado==='cerrado'"
+                  (click)="cambiarEstado(caso.id!, 'activo')"
+                  class="btn-sm btn-ok">Reabrir</button>
+          <button (click)="eliminar(caso.id!)" class="btn-sm btn-ghost">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ── NUEVO CASO ── -->
+  <ng-container *ngIf="vista() === 'nuevo'">
+    <div class="page-head">
+      <button (click)="vista.set('lista')" class="btn-back">← Volver</button>
+      <h2>Nuevo Caso</h2>
+    </div>
+    <div class="form-card">
+      <form [formGroup]="form" (ngSubmit)="guardar()">
+        <div class="form-grid">
+          <div class="fg full">
+            <label>Título del caso *</label>
+            <input formControlName="titulo" placeholder="Ej: Demanda ejecutiva — García vs López"/>
+          </div>
+          <div class="fg">
+            <label>Cliente *</label>
+            <input formControlName="cliente" placeholder="Nombre completo"/>
+          </div>
+          <div class="fg">
+            <label>Contraparte</label>
+            <input formControlName="contraparte" placeholder="Nombre contraparte"/>
+          </div>
+          <div class="fg">
+            <label>Tipo *</label>
+            <select formControlName="tipo">
+              <option *ngFor="let t of tipos" [value]="t">{{ t | titlecase }}</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Estado</label>
+            <select formControlName="estado">
+              <option *ngFor="let e of estados" [value]="e">{{ e | titlecase }}</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>N° Expediente</label>
+            <input formControlName="numero_expediente" placeholder="000/2025"/>
+          </div>
+          <div class="fg">
+            <label>Juzgado</label>
+            <input formControlName="juzgado" placeholder="Juzgado 1° Civil La Paz"/>
+          </div>
+          <div class="fg">
+            <label>Fecha inicio</label>
+            <input type="date" formControlName="fecha_inicio"/>
+          </div>
+          <div class="fg full">
+            <label>Descripción</label>
+            <textarea formControlName="descripcion" rows="3"
+                      placeholder="Breve descripción del caso…"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" (click)="vista.set('lista')" class="btn-secondary">Cancelar</button>
+          <button type="submit" [disabled]="form.invalid || cargando()" class="btn-primary">
+            {{ cargando() ? 'Guardando…' : '💾 Guardar Caso' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </ng-container>
+
+  <!-- ── DETALLE ── -->
+  <ng-container *ngIf="vista() === 'detalle' && casoSeleccionado()">
+    <div class="page-head">
+      <button (click)="vista.set('lista')" class="btn-back">← Volver</button>
+      <div>
+        <h2>{{ casoSeleccionado().caso?.titulo }}</h2>
+        <span [class]="badgeEstado(casoSeleccionado().caso?.estado)">
+          {{ casoSeleccionado().caso?.estado }}
+        </span>
+      </div>
+    </div>
+
+    <div class="detalle-grid">
+      <div class="panel">
+        <h3>📋 Información del caso</h3>
+        <dl>
+          <dt>Cliente</dt>      <dd>{{ casoSeleccionado().caso?.cliente }}</dd>
+          <dt>Tipo</dt>         <dd>{{ casoSeleccionado().caso?.tipo | titlecase }}</dd>
+          <dt>Contraparte</dt>  <dd>{{ casoSeleccionado().caso?.contraparte || '—' }}</dd>
+          <dt>Expediente</dt>   <dd>{{ casoSeleccionado().caso?.numero_expediente || '—' }}</dd>
+          <dt>Juzgado</dt>      <dd>{{ casoSeleccionado().caso?.juzgado || '—' }}</dd>
+          <dt>Inicio</dt>       <dd>{{ casoSeleccionado().caso?.fecha_inicio | date:'dd/MM/yyyy' }}</dd>
+        </dl>
+        <p class="desc" *ngIf="casoSeleccionado().caso?.descripcion">
+          {{ casoSeleccionado().caso.descripcion }}
+        </p>
+      </div>
+
+      <div class="panel">
+        <h3>📝 Notas</h3>
+        <div class="nota-box">
+          <textarea [(ngModel)]="nuevaNota" rows="2"
+                    placeholder="Escribe una nota o actuación…"></textarea>
+          <button (click)="agregarNota()" class="btn-primary btn-sm">Agregar</button>
+        </div>
+        <div class="notas-list">
+          <div *ngFor="let n of casoSeleccionado().notas" class="nota-item">
+            <span class="nota-tipo">{{ n.tipo }}</span>
+            <p>{{ n.contenido }}</p>
+            <small>{{ n.created_at | date:'dd/MM/yyyy HH:mm' }}</small>
+          </div>
+          <p *ngIf="!casoSeleccionado().notas?.length" class="empty-txt">Sin notas aún.</p>
+        </div>
+      </div>
+
+      <div class="panel panel-full">
+        <h3>📅 Línea de tiempo</h3>
+        <div class="timeline">
+          <div *ngFor="let t of casoSeleccionado().timeline" class="tl-item">
+            <div class="tl-dot"></div>
+            <div>
+              <p>{{ t.descripcion }}</p>
+              <small>{{ t.fecha | date:'dd/MM/yyyy' }}</small>
+            </div>
+          </div>
+          <p *ngIf="!casoSeleccionado().timeline?.length" class="empty-txt">Sin actuaciones.</p>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+</div>
+
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\cases\cases.component.scss ===
+:host { display: block; }
+.cases-wrap { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
+
+/* toolbar */
+.toolbar { display:flex; justify-content:space-between; align-items:center;
+           flex-wrap:wrap; gap:.75rem; margin-bottom:1.5rem; }
+.toolbar-l { display:flex; align-items:center; gap:.6rem;
+             h1 { margin:0; font-size:1.5rem; font-weight:700; } }
+.toolbar-r { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+.chip-total { background:#2563eb; color:#fff; border-radius:999px;
+              padding:2px 10px; font-size:.8rem; font-weight:600; }
+.inp-search { padding:.45rem .75rem; border:1px solid #d1d5db; border-radius:8px;
+              font-size:.875rem; width:200px; }
+.sel { padding:.45rem .6rem; border:1px solid #d1d5db; border-radius:8px; font-size:.875rem; }
+
+/* grid */
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:1rem; }
+
+/* card */
+.card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:1rem;
+        cursor:pointer; transition:all .15s;
+        &:hover { box-shadow:0 4px 16px rgba(0,0,0,.1); transform:translateY(-2px); } }
+.card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem; }
+.tipo-pill { color:#fff; border-radius:6px; padding:2px 8px;
+             font-size:.72rem; font-weight:700; text-transform:uppercase; }
+.card h3 { margin:.25rem 0; font-size:.975rem; font-weight:600; }
+.meta { font-size:.83rem; color:#6b7280; margin:.15rem 0; }
+.card-actions { display:flex; gap:.4rem; margin-top:.75rem; }
+
+/* badges */
+.badge-activo   { background:#dcfce7; color:#16a34a; border-radius:999px; padding:2px 10px; font-size:.75rem; font-weight:600; }
+.badge-espera   { background:#fef9c3; color:#a16207; border-radius:999px; padding:2px 10px; font-size:.75rem; font-weight:600; }
+.badge-cerrado  { background:#f3f4f6; color:#6b7280; border-radius:999px; padding:2px 10px; font-size:.75rem; font-weight:600; }
+.badge-archivado{ background:#fee2e2; color:#dc2626; border-radius:999px; padding:2px 10px; font-size:.75rem; font-weight:600; }
+
+/* buttons */
+.btn-primary   { background:#2563eb; color:#fff; border:none; border-radius:8px;
+                 padding:.5rem 1rem; cursor:pointer; font-weight:600;
+                 &:hover { background:#1d4ed8; } &:disabled { opacity:.5; cursor:not-allowed; } }
+.btn-secondary { background:#f3f4f6; color:#374151; border:1px solid #d1d5db;
+                 border-radius:8px; padding:.5rem 1rem; cursor:pointer; }
+.btn-sm        { padding:.25rem .6rem; font-size:.8rem; border-radius:6px; border:none; cursor:pointer; }
+.btn-warn      { background:#fee2e2; color:#dc2626; }
+.btn-ok        { background:#dcfce7; color:#16a34a; }
+.btn-ghost     { background:transparent; }
+.btn-back      { background:none; border:none; color:#2563eb; cursor:pointer;
+                 font-weight:600; &:hover { text-decoration:underline; } }
+
+/* form */
+.page-head  { display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem;
+              h2 { margin:0; font-size:1.2rem; font-weight:700; } }
+.form-card  { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:1.5rem; max-width:860px; }
+.form-grid  { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.fg         { display:flex; flex-direction:column; gap:.3rem;
+              &.full { grid-column:1/-1; }
+              label    { font-weight:600; font-size:.85rem; color:#374151; }
+              input, select, textarea { padding:.5rem; border:1px solid #d1d5db;
+                border-radius:8px; font-size:.9rem;
+                &:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 2px #dbeafe; } } }
+.form-actions { display:flex; gap:.75rem; justify-content:flex-end; margin-top:1.25rem; }
+
+/* detalle */
+.detalle-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.panel        { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:1.25rem;
+                h3 { margin:0 0 1rem; font-size:1rem; font-weight:700; } }
+.panel-full   { grid-column:1/-1; }
+dl            { display:grid; grid-template-columns:auto 1fr; gap:.35rem 1rem; font-size:.875rem; }
+dt            { font-weight:600; color:#6b7280; }
+dd            { margin:0; }
+.desc         { color:#6b7280; font-size:.875rem; margin-top:.75rem; font-style:italic; }
+
+/* notas */
+.nota-box    { display:flex; gap:.5rem; margin-bottom:.75rem;
+               textarea { flex:1; border:1px solid #d1d5db; border-radius:8px;
+                          padding:.5rem; resize:none; font-size:.875rem; } }
+.nota-item   { border-left:3px solid #2563eb; padding-left:.75rem; margin-bottom:.75rem;
+               .nota-tipo { font-size:.7rem; text-transform:uppercase; color:#6b7280; font-weight:600; }
+               p   { margin:.15rem 0; font-size:.875rem; }
+               small { color:#9ca3af; font-size:.75rem; } }
+
+/* timeline */
+.timeline  { }
+.tl-item   { display:flex; gap:.75rem; align-items:flex-start; margin-bottom:.75rem;
+             p     { margin:0; font-size:.875rem; font-weight:500; }
+             small { color:#9ca3af; font-size:.75rem; } }
+.tl-dot    { width:10px; height:10px; border-radius:50%; background:#2563eb;
+             flex-shrink:0; margin-top:4px; }
+
+.empty     { grid-column:1/-1; text-align:center; padding:3rem; color:#9ca3af; }
+.empty-icon{ font-size:3rem; margin-bottom:.5rem; }
+.empty-txt { color:#9ca3af; font-size:.875rem; text-align:center; padding:1rem 0; }
+.loading   { text-align:center; padding:3rem; color:#9ca3af; }
+
+@media(max-width:768px) {
+  .form-grid    { grid-template-columns:1fr; }
+  .detalle-grid { grid-template-columns:1fr; }
+  .toolbar      { flex-direction:column; align-items:flex-start; }
+  .inp-search   { width:100%; }
+}
+
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\cases\cases.component.ts ===
+import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { CasesService, Caso } from '../../core/services/cases.service';
+
+@Component({
+  selector: 'app-cases',
+  standalone: true,
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  templateUrl: './cases.component.html',
+  styleUrls: ['./cases.component.scss']
+})
+export class CasesComponent implements OnInit {
+  casos = signal<Caso[]>([]);
+  casoSeleccionado = signal<any>(null);
+  vista = signal<'lista'|'detalle'|'nuevo'>('lista');
+  cargando = signal(false);
+  busqueda = '';
+  filtroEstado = '';
+  filtroTipo = '';
+  nuevaNota = '';
+  form: FormGroup;
+
+  tipos   = ['civil','penal','familiar','laboral','comercial','constitucional','otro'];
+  estados = ['activo','en_espera','cerrado','archivado'];
+  colores: Record<string,string> = {
+    civil:'#2563eb', penal:'#dc2626', familiar:'#16a34a',
+    laboral:'#d97706', comercial:'#7c3aed', constitucional:'#0891b2', otro:'#6b7280'
+  };
+
+  constructor(private svc: CasesService, private fb: FormBuilder) {
+    this.form = this.fb.group({
+      titulo:            ['', Validators.required],
+      cliente:           ['', Validators.required],
+      tipo:              ['civil', Validators.required],
+      estado:            ['activo'],
+      descripcion:       [''],
+      numero_expediente: [''],
+      juzgado:           [''],
+      contraparte:       [''],
+      fecha_inicio:      [new Date().toISOString().split('T')[0]]
+    });
+  }
+
+  ngOnInit() { this.cargar(); }
+
+  cargar() {
+    this.cargando.set(true);
+    this.svc.list({ estado: this.filtroEstado, tipo: this.filtroTipo, q: this.busqueda })
+      .subscribe({
+        next: r => { this.casos.set(r.casos || []); this.cargando.set(false); },
+        error: () => this.cargando.set(false)
+      });
+  }
+
+  abrirDetalle(caso: Caso) {
+    this.cargando.set(true);
+    this.svc.get(caso.id!).subscribe(r => {
+      this.casoSeleccionado.set(r);
+      this.vista.set('detalle');
+      this.cargando.set(false);
+    });
+  }
+
+  guardar() {
+    if (this.form.invalid) return;
+    this.cargando.set(true);
+    this.svc.create(this.form.value).subscribe({
+      next: () => { this.form.reset(); this.cargar(); this.vista.set('lista'); },
+      error: () => this.cargando.set(false)
+    });
+  }
+
+  cambiarEstado(id: string, estado: string) {
+    this.svc.update(id, { estado }).subscribe(() => this.cargar());
+  }
+
+  agregarNota() {
+    if (!this.nuevaNota.trim()) return;
+    const c = this.casoSeleccionado();
+    this.svc.addNote(c.caso.id, this.nuevaNota).subscribe(r => {
+      const actual = this.casoSeleccionado();
+      actual.notas = [r.nota, ...(actual.notas || [])];
+      this.casoSeleccionado.set({...actual});
+      this.nuevaNota = '';
+    });
+  }
+
+  eliminar(id: string) {
+    if (!confirm('¿Eliminar este caso?')) return;
+    this.svc.delete(id).subscribe(() => this.cargar());
+  }
+
+  get casosFiltrados(): Caso[] {
+    if (!this.busqueda) return this.casos();
+    const q = this.busqueda.toLowerCase();
+    return this.casos().filter(c =>
+      c.titulo.toLowerCase().includes(q) || c.cliente.toLowerCase().includes(q));
+  }
+
+  colorTipo(t: string) { return this.colores[t] || '#6b7280'; }
+  badgeEstado(e: string) {
+    const m: Record<string,string> = {
+      activo:'badge-activo', en_espera:'badge-espera',
+      cerrado:'badge-cerrado', archivado:'badge-archivado'
+    };
+    return m[e] || 'badge-cerrado';
+  }
+}
+
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\chat\chat.component.html ===
+<div class="chat-layout">
+
+  <!-- Header -->
+  <header class="chat-header">
+    <div class="header-left">
+      <h1 class="page-title">Consulta Jurídica</h1>
+      <p class="page-sub">Derecho boliviano · Legislación vigente 2026 · TCP · TSJ</p>
+    </div>
+    <div class="header-right">
+      @if (currentProvider()) {
+        <span class="provider-pill">
+          <span class="provider-dot"></span>
+          {{ currentProvider() }}
+        </span>
+      }
+      <button class="btn-ghost" (click)="clearChat()" title="Nueva consulta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m-8-8h16"/>
+        </svg>
+        Nueva
+      </button>
+    </div>
+  </header>
+
+  <!-- Area selector -->
+  <div class="area-bar">
+    @for (a of areas; track a.value) {
+      <button class="area-chip" [class.active]="selectedArea() === a.value" (click)="selectedArea.set(a.value)">
+        {{ a.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Messages -->
+  <div class="messages-area" #messagesEl>
+
+    <!-- Quick actions (solo al inicio) -->
+    @if (messages().length <= 1) {
+      <div class="quick-actions">
+        <p class="quick-title">Consultas frecuentes</p>
+        <div class="quick-grid">
+          @for (qa of quickActions; track qa.label) {
+            <button class="quick-card" (click)="sendMessage(qa.prompt)">
+              <span class="quick-icon">{{ qa.icon }}</span>
+              <span class="quick-label">{{ qa.label }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    @for (msg of messages(); track msg.id) {
+      <div class="message" [class.user]="msg.role === 'user'" [class.assistant]="msg.role === 'assistant'">
+
+        @if (msg.role === 'assistant') {
+          <div class="msg-avatar assistant-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1M4.22 4.22l.707.707m12.02 12.02l.707.707M1 12h1m20 0h1M4.22 19.78l.707-.707M18.95 5.05l.707-.707M12 7a5 5 0 100 10A5 5 0 0012 7z"/>
+            </svg>
+          </div>
+        }
+
+        <div class="msg-body">
+          <div class="msg-bubble">
+            @if (msg.isStreaming) {
+              <div class="typing-dots"><span></span><span></span><span></span></div>
+            } @else {
+              <div class="msg-content" [innerHTML]="renderMarkdown(msg.content)"></div>
+            }
+          </div>
+
+          @if (msg.role === 'assistant' && !msg.isStreaming && msg.provider !== 'sistema') {
+            <div class="msg-actions">
+              <span class="msg-time">{{ msg.timestamp | date:'HH:mm' }}</span>
+              @if (msg.provider) { <span class="msg-provider">{{ msg.provider }}</span> }
+              <button class="action-btn" (click)="exportToWord(msg)" [disabled]="exportingId() === msg.id" title="Exportar a Word">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                {{ exportingId() === msg.id ? 'Generando...' : 'Word' }}
+              </button>
+              <button class="action-btn" (click)="exportToPdf(msg)" title="Exportar a PDF">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+                PDF
+              </button>
+            </div>
+          }
+
+          @if (msg.role === 'user') {
+            <div class="msg-actions">
+              <span class="msg-time">{{ msg.timestamp | date:'HH:mm' }}</span>
+            </div>
+          }
+        </div>
+
+        @if (msg.role === 'user') {
+          <div class="msg-avatar user-avatar">U</div>
+        }
+
+      </div>
+    }
+  </div>
+
+  <!-- Input -->
+  <div class="input-area">
+    <div class="input-wrapper">
+      <textarea
+        #inputEl
+        class="chat-input"
+        [(ngModel)]="inputText"
+        placeholder="Escribe tu consulta jurídica... (Enter para enviar, Shift+Enter para nueva línea)"
+        rows="1"
+        [disabled]="isLoading()"
+        (keydown)="onKeydown($event)"
+        (input)="$any($event.target).style.height = 'auto'; $any($event.target).style.height = $any($event.target).scrollHeight + 'px'">
+      </textarea>
+      <button class="send-btn" (click)="sendMessage()" [disabled]="isLoading() || !inputText.trim()">
+        @if (isLoading()) {
+          <div class="send-spinner"></div>
+        } @else {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19V5m0 0l-7 7m7-7l7 7"/>
+          </svg>
+        }
+      </button>
+    </div>
+    <p class="input-hint">Basado en CPE 2009 · Ley 603 · Ley 348 · Ley 1173 · Ley 1390 · Ley 1391 · Ley 1443 · Ley 1523 y jurisprudencia TCP · TSJ hasta 2026</p>
+  </div>
+
+</div>
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\chat\chat.component.scss ===
+:host { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+
+.chat-layout { display:flex; flex-direction:column; height:100vh; overflow:hidden; background:var(--bg); }
+
+/* Header */
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--surf);
+  border-bottom: 1px solid var(--bord);
+
+  .header-left { display:flex; flex-direction:column; gap:2px; }
+  .page-title { font-family:"Playfair Display",serif; font-size:1.1rem; font-weight:600; color:var(--txt); }
+  .page-sub { font-size:.72rem; color:var(--txt-3); letter-spacing:.03em; }
+  .header-right { display:flex; align-items:center; gap:10px; }
+}
+
+.provider-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gold-bg);
+  border: 1px solid rgba(184,135,42,.2);
+  color: var(--gold);
+  font-size: .7rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: .04em;
+}
+
+.provider-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: glow 1.5s infinite;
+}
+
+@keyframes glow { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.btn-ghost {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--bord);
+  color: var(--txt-2);
+  font-size: .78rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: .15s;
+  font-family: 'DM Sans', sans-serif;
+
+  &:hover { background: var(--surf-2); border-color: var(--bord-2); color: var(--txt); }
+}
+
+/* Area bar */
+.area-bar {
+  display: flex;
+  gap: 4px;
+  padding: 10px 24px;
+  background: var(--surf);
+  border-bottom: 1px solid var(--bord);
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display:none; }
+}
+
+.area-chip {
+  padding: 5px 14px;
+  border: 1px solid var(--bord);
+  background: transparent;
+  border-radius: 20px;
+  font-size: .75rem;
+  color: var(--txt-3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: .15s;
+  font-family: 'DM Sans', sans-serif;
+
+  &:hover { border-color: var(--prim-3); color: var(--prim); }
+  &.active { background: var(--prim); border-color: var(--prim); color: white; }
+}
+
+/* Messages */
+.messages-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Quick actions */
+.quick-actions {
+  margin: 8px 0 16px;
+}
+
+.quick-title {
+  font-size: .75rem;
+  color: var(--txt-3);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.quick-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surf);
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: .15s;
+  font-family: 'DM Sans', sans-serif;
+
+  &:hover { border-color: var(--prim-3); box-shadow: var(--shadow); transform: translateY(-1px); }
+}
+
+.quick-icon { font-size: 1.1rem; flex-shrink: 0; }
+.quick-label { font-size: .8rem; color: var(--txt-2); line-height: 1.3; }
+
+/* Message */
+.message {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  animation: fadeIn .2s ease;
+
+  &.user { flex-direction: row-reverse; }
+}
+
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+.msg-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.assistant-avatar {
+  background: var(--prim);
+  color: var(--gold-lt);
+  border: 1px solid rgba(184,135,42,.2);
+}
+
+.user-avatar {
+  background: var(--surf-2);
+  border: 1px solid var(--bord);
+  color: var(--txt-2);
+  font-size: .72rem;
+  font-weight: 500;
+}
+
+.msg-body { flex: 1; max-width: 78%; display: flex; flex-direction: column; gap: 6px; }
+.message.user .msg-body { align-items: flex-end; }
+
+.msg-bubble {
+  padding: 12px 16px;
+  border-radius: 12px;
+  line-height: 1.65;
+
+  .message.assistant & {
+    background: var(--surf);
+    border: 1px solid var(--bord);
+    border-radius: 2px 12px 12px 12px;
+    box-shadow: var(--shadow);
+  }
+
+  .message.user & {
+    background: var(--prim);
+    color: white;
+    border-radius: 12px 2px 12px 12px;
+  }
+}
+
+.msg-content {
+  font-size: .88rem;
+  color: var(--txt);
+
+  ::ng-deep {
+    h3 { font-family:'Playfair Display',serif; font-size:.95rem; font-weight:600; color:var(--prim); margin:14px 0 6px; border-bottom:1px solid var(--bord); padding-bottom:4px; }
+    h4 { font-size:.85rem; font-weight:500; color:var(--prim-2); margin:10px 0 4px; }
+    strong { color:var(--prim); font-weight:500; }
+    code { font-family:'DM Mono',monospace; font-size:.8em; background:var(--surf-2); padding:1px 5px; border-radius:4px; color:var(--prim-2); }
+    ul { padding-left:18px; margin:6px 0; }
+    li { margin:3px 0; }
+    p { margin:6px 0; }
+    em { color:var(--txt-2); }
+  }
+}
+
+.message.user .msg-content { color:white; }
+.message.user .msg-content ::ng-deep strong { color:rgba(255,255,255,.9); }
+
+.msg-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.msg-time { font-size: .68rem; color: var(--txt-3); font-family:'DM Mono',monospace; }
+.msg-provider { font-size: .68rem; color: var(--gold); background: var(--gold-bg); padding: 1px 6px; border-radius: 4px; font-family:'DM Mono',monospace; }
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--bord);
+  color: var(--txt-3);
+  font-size: .7rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: .15s;
+  font-family: 'DM Sans', sans-serif;
+
+  &:hover { background: var(--surf-2); color: var(--prim); border-color: var(--bord-2); }
+  &:disabled { opacity: .5; cursor: not-allowed; }
+}
+
+/* Typing */
+.typing-dots { display:flex; gap:4px; padding:4px 0; }
+.typing-dots span { width:6px; height:6px; border-radius:50%; background:var(--bord-2); animation:dots 1.2s infinite; }
+.typing-dots span:nth-child(2) { animation-delay:.2s; }
+.typing-dots span:nth-child(3) { animation-delay:.4s; }
+@keyframes dots { 0%,80%,100%{transform:scale(.7);opacity:.4} 40%{transform:scale(1);opacity:1} }
+
+/* Input */
+.input-area {
+  padding: 16px 24px 20px;
+  background: var(--surf);
+  border-top: 1px solid var(--bord);
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  background: var(--bg);
+  border: 1.5px solid var(--bord);
+  border-radius: 12px;
+  padding: 10px 10px 10px 16px;
+  transition: border-color .2s;
+
+  &:focus-within { border-color: var(--prim-3); background: white; }
+}
+
+.chat-input {
+  flex: 1;
+  border: none;
+  background: none;
+  font-size: .88rem;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--txt);
+  resize: none;
+  outline: none;
+  max-height: 120px;
+  line-height: 1.5;
+
+  &::placeholder { color: var(--txt-3); }
+  &:disabled { opacity: .55; }
+}
+
+.send-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: none;
+  background: var(--prim);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: .15s;
+
+  &:hover:not(:disabled) { background: var(--prim-2); transform: scale(1.04); }
+  &:disabled { opacity: .35; cursor: not-allowed; }
+}
+
+.send-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.input-hint { font-size: .65rem; color: var(--txt-3); margin-top: 8px; text-align: center; }
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\chat\chat.component.ts ===
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
+import { LlmProxyService } from '../../core/services/llm-proxy.service';
+import { ChatMessage, LegalArea, LlmMessage } from '../../core/models/legal.models';
+import { DocumentService } from '../../core/services/document.service';
+
+const SYSTEM_PROMPT = `Eres MAJA JURÍDICO, asistente juridico especializado en derecho boliviano creado por Miguel Angel Jemio Azurduy. Tu conocimiento abarca toda la legislacion boliviana vigente hasta 2026.
+
+LEGISLACION PRINCIPAL QUE CONOCES:
+- CPE 2009 (Constitucion Politica del Estado)
+- Cod. Civil (Ley 12760) y Cod. Procesal Civil (Ley 439, 2013)
+- Cod. Penal (Ley 1768) y Cod. Procedimiento Penal (Ley 1970, mod. Ley 1391/2021)
+- Cod. Familia (Ley 603, 2014) - reemplaza al Cod. Familia de 1972
+- Ley General del Trabajo y DS 23570
+- Ley 045 contra el Racismo (2010)
+- Ley 223 personas con discapacidad (2012)
+- Ley 243 contra el acoso politico (2012)
+- Ley 263 trata y trafico (2012)
+- Ley 348 violencia hacia la mujer (2013)
+- Ley 369 adulto mayor (2013)
+- Ley 393 servicios financieros (2013)
+- Ley 439 Cod. Procesal Civil (2013)
+- Ley 483 matrimonio civil (2014)
+- Ley 548 Cod. Nino, Nina y Adolescente (2014)
+- Ley 603 Cod. Familias (2014)
+- Ley 807 identidad de genero (2016)
+- Ley 913 lucha contra el narcotrafico (2017)
+- Ley 1005 Cod. del Sistema Penal (2018)
+- Ley 1173 abreviacion procesal penal (2019)
+- Ley 1390 fortalecimiento lucha contra corrupcion (2021)
+- Ley 1391 modificaciones al CPP (2021)
+- Ley 1443 prevencion discriminacion (2022)
+- Ley 1523 registro obligatorio biometrico (2024)
+- Decretos Supremos 2024-2026 en materia laboral, tributaria y administrativa
+- Jurisprudencia TCP y TSJ hasta 2026
+
+REGLAS ESTRICTAS:
+1. Cita SIEMPRE el articulo exacto: "Art. 67 CPE", "Art. 5 Ley 369", "Art. 308 Cod. Penal". NUNCA omitas el numero.
+2. Menciona jurisprudencia TCP/TSJ con numero de sentencia cuando sea relevante.
+3. Distingue norma vigente de derogada. Si una ley fue reemplazada indica cual la reemplaza.
+4. Estructura OBLIGATORIA: ## Base Legal -> ## Analisis -> ## Consecuencias Juridicas -> ## Recomendacion Practica.
+5. Desarrolla cada seccion completamente, no cortes la respuesta.
+6. Para temas de familia usa SIEMPRE Ley 603, nunca el codigo de 1972.
+7. Para temas penales procesales usa Ley 1173 y modificaciones 2021.
+8. Si hay legislacion post-2022 involucrada, recomienda verificar en gacetaoficialdebolivia.gob.bo.
+Usa formato Markdown: **negritas** para articulos, ## para secciones, - para listas.`;
+
+interface QuickAction {
+  label: string;
+  prompt: string;
+  icon: string;
+}
+
+@Component({
+  selector: 'app-chat',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './chat.component.html',
+  styleUrls: ['./chat.component.scss']
+})
+export class ChatComponent implements OnInit, OnDestroy {
+  @ViewChild('messagesEl') messagesEl!: ElementRef;
+  @ViewChild('inputEl') inputEl!: ElementRef;
+
+  private llm     = inject(LlmProxyService);
+  private docSvc  = inject(DocumentService);
+  private destroy = new Subject<void>();
+
+  messages        = signal<ChatMessage[]>([]);
+  isLoading       = signal(false);
+  selectedArea    = signal<LegalArea>('auto');
+  currentProvider = signal('');
+  inputText       = '';
+  history: LlmMessage[] = [];
+  exportingId     = signal<string | null>(null);
+
+  readonly areas: { value: LegalArea; label: string }[] = [
+    { value: 'auto',           label: 'General'        },
+    { value: 'civil',          label: 'Civil'          },
+    { value: 'penal',          label: 'Penal'          },
+    { value: 'laboral',        label: 'Laboral'        },
+    { value: 'constitucional', label: 'Constitucional' },
+    { value: 'administrativo', label: 'Administrativo' },
+    { value: 'familiar',       label: 'Familiar'       }
+  ];
+
+  readonly quickActions: QuickAction[] = [
+    { label: 'Requisitos de divorcio',       prompt: '¿Cuáles son los requisitos para el divorcio en Bolivia según la Ley 603?',     icon: '⚖' },
+    { label: 'Plazos de apelación civil',    prompt: '¿Cuáles son los plazos para interponer recurso de apelación en materia civil?', icon: '📋' },
+    { label: 'Derechos del trabajador',      prompt: '¿Cuáles son los derechos laborales fundamentales en Bolivia?',                  icon: '👷' },
+    { label: 'Delitos contra la propiedad',  prompt: '¿Cómo tipifica el Código Penal boliviano los delitos contra la propiedad?',     icon: '🏛' }
+  ];
+
+  ngOnInit(): void {
+    this.messages.set([{
+      id: 'welcome',
+      role: 'assistant',
+      timestamp: new Date(),
+      content: `## Bienvenido a MAJA JURÍDICO Bolivia
+
+Soy tu asistente jurídico especializado en **derecho boliviano**. Puedo ayudarte con:
+
+- **Consultas legales** sobre normativa boliviana vigente
+- **Jurisprudencia** del TCP y Tribunal Supremo de Justicia
+- **Análisis** de contratos y documentos
+- **Procedimientos** judiciales y plazos procesales
+- **Generación** de documentos Word profesionales
+
+Escribe tu consulta o usa las acciones rápidas para comenzar.`,
+      provider: 'sistema'
+    }]);
+    this.loadHistory();
+  }
+
+  ngOnDestroy(): void { this.destroy.next(); this.destroy.complete(); }
+
+  sendMessage(text?: string): void {
+    const msg = (text || this.inputText).trim();
+    if (!msg || this.isLoading()) return;
+
+    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: msg, timestamp: new Date() };
+    this.messages.update(m => [...m, userMsg]);
+    this.inputText = '';
+    this.isLoading.set(true);
+    this.history.push({ role: 'user', content: msg });
+
+    const assistantId = crypto.randomUUID();
+    this.messages.update(m => [...m, { id: assistantId, role: 'assistant', content: '', timestamp: new Date(), isStreaming: true }]);
+    this.scrollBottom();
+
+    let fullContent = '';
+    this.llm.chatStream(this.history, SYSTEM_PROMPT)
+      .pipe(takeUntil(this.destroy))
+      .subscribe({
+        next: data => {
+          if (data.error) {
+            this.messages.update(m => m.map(msg =>
+              msg.id === assistantId ? { ...msg, content: '**Error:** ' + data.error, isStreaming: false } : msg
+            ));
+            this.isLoading.set(false);
+            return;
+          }
+          if (!data.done) {
+            fullContent += data.chunk;
+            this.messages.update(m => m.map(msg =>
+              msg.id === assistantId ? { ...msg, content: fullContent, isStreaming: true } : msg
+            ));
+            this.scrollBottom();
+          } else {
+            this.history.push({ role: 'assistant', content: fullContent });
+            this.messages.update(m => m.map(msg =>
+              msg.id === assistantId
+                ? { ...msg, content: fullContent, provider: data.provider, tokensUsed: data.tokens, isStreaming: false }
+                : msg
+            ));
+            this.currentProvider.set(data.provider || '');
+            this.isLoading.set(false);
+            this.saveHistory();
+            this.scrollBottom();
+          }
+        },
+        error: err => {
+          this.messages.update(m => m.map(msg =>
+            msg.id === assistantId ? { ...msg, content: '**Error:** ' + err.message, isStreaming: false } : msg
+          ));
+          this.isLoading.set(false);
+        }
+      });
+  }
+
+  async exportToWord(msg: ChatMessage): Promise<void> {
+    this.exportingId.set(msg.id);
+    try {
+      await this.docSvc.exportChatToWord(msg.content, 'Consulta Juridica Bolivia');
+    } finally {
+      this.exportingId.set(null);
+    }
+  }
+
+  async exportToPdf(msg: ChatMessage): Promise<void> {
+    this.exportingId.set(msg.id);
+    try {
+      await this.docSvc.exportChatToPdf(msg.content, 'Consulta Juridica Bolivia');
+    } finally {
+      this.exportingId.set(null);
+    }
+  }
+
+  renderMarkdown(content: string): string {
+    if (!content) return '';
+    return content
+      .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code>$1</code>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/gs, '<ul>$&</ul>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/^(?!<[huc])(.+)$/gm, '$1')
+      .replace(/\n/g, '<br>');
+  }
+
+  onKeydown(e: KeyboardEvent): void {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendMessage(); }
+  }
+
+  clearChat(): void { this.history = []; this.messages.set([]); localStorage.removeItem('juris_history'); this.ngOnInit(); }
+
+  private scrollBottom(): void {
+    setTimeout(() => { const el = this.messagesEl?.nativeElement; if (el) el.scrollTop = el.scrollHeight; }, 80);
+  }
+  private saveHistory(): void { localStorage.setItem('juris_history', JSON.stringify(this.history.slice(-20))); }
+  private loadHistory(): void {
+    try { const s = localStorage.getItem('juris_history'); if (s) this.history = JSON.parse(s); } catch { this.history = []; }
+  }
+}
+
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\clients\clients.component.ts ===
+import { Component, signal, inject, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+
+interface Cliente {
+  id?: string;
+  nombre: string;
+  ci_nit?: string;
+  telefono?: string;
+  email?: string;
+  direccion?: string;
+  ciudad?: string;
+  tipo?: string;
+  notas?: string;
+}
+
+@Component({
+  selector: 'app-clients',
+  standalone: true,
+  imports: [CommonModule, FormsModule, HttpClientModule],
+  template: `
+<div class="clients-container">
+  <div class="clients-header">
+    <h1>👥 Directorio de Clientes</h1>
+    <button class="btn-primary" (click)="showForm.set(true)">+ Nuevo Cliente</button>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" placeholder="Buscar cliente..." [(ngModel)]="searchTerm" (input)="buscar()" />
+  </div>
+
+  <div class="form-modal" *ngIf="showForm()">
+    <div class="form-card">
+      <h2>{{ editando() ? 'Editar' : 'Nuevo' }} Cliente</h2>
+      <div class="form-grid">
+        <input placeholder="Nombre completo *" [(ngModel)]="form.nombre" />
+        <input placeholder="CI / NIT" [(ngModel)]="form.ci_nit" />
+        <input placeholder="Teléfono" [(ngModel)]="form.telefono" />
+        <input placeholder="Email" [(ngModel)]="form.email" />
+        <input placeholder="Dirección" [(ngModel)]="form.direccion" />
+        <input placeholder="Ciudad" [(ngModel)]="form.ciudad" />
+        <select [(ngModel)]="form.tipo">
+          <option value="persona_natural">Persona Natural</option>
+          <option value="empresa">Empresa</option>
+        </select>
+        <textarea placeholder="Notas adicionales" [(ngModel)]="form.notas"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" (click)="cancelar()">Cancelar</button>
+        <button class="btn-primary" (click)="guardar()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="clientes-grid" *ngIf="!cargando()">
+    <div class="cliente-card" *ngFor="let c of clientes()">
+      <div class="cliente-header">
+        <span class="cliente-avatar">{{ c.nombre[0] }}</span>
+        <div>
+          <h3>{{ c.nombre }}</h3>
+          <span class="badge">{{ c.tipo === 'empresa' ? '🏢 Empresa' : '👤 Persona' }}</span>
+        </div>
+      </div>
+      <div class="cliente-info">
+        <p *ngIf="c.telefono">📞 {{ c.telefono }}</p>
+        <p *ngIf="c.email">✉️ {{ c.email }}</p>
+        <p *ngIf="c.ci_nit">🪪 {{ c.ci_nit }}</p>
+        <p *ngIf="c.ciudad">📍 {{ c.ciudad }}</p>
+      </div>
+      <div class="cliente-actions">
+        <button class="btn-edit" (click)="editar(c)">✏️ Editar</button>
+        <button class="btn-delete" (click)="eliminar(c.id!)">🗑️ Eliminar</button>
+      </div>
+    </div>
+    <div class="empty-state" *ngIf="clientes().length === 0">
+      <p>No hay clientes registrados. ¡Agrega el primero!</p>
+    </div>
+  </div>
+  <div *ngIf="cargando()" class="loading">Cargando clientes...</div>
+</div>
+  `,
+  styles: [`
+    .clients-container { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+    .clients-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .clients-header h1 { font-size: 1.8rem; font-weight: 700; }
+    .search-bar input { width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem; margin-bottom: 1.5rem; }
+    .clientes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+    .cliente-card { background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }
+    .cliente-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+    .cliente-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 700; flex-shrink: 0; }
+    .cliente-header h3 { font-size: 1rem; font-weight: 600; margin: 0; }
+    .badge { font-size: 0.75rem; color: #64748b; }
+    .cliente-info p { font-size: 0.875rem; color: #64748b; margin: 0.25rem 0; }
+    .cliente-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+    .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    .btn-secondary { background: #f1f5f9; color: #475569; border: none; padding: 0.6rem 1.25rem; border-radius: 8px; cursor: pointer; }
+    .btn-edit { background: #eff6ff; color: #3b82f6; border: none; padding: 0.4rem 0.75rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+    .btn-delete { background: #fef2f2; color: #ef4444; border: none; padding: 0.4rem 0.75rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+    .form-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .form-card { background: white; border-radius: 16px; padding: 2rem; width: 90%; max-width: 500px; }
+    .form-card h2 { margin-bottom: 1.5rem; font-size: 1.25rem; font-weight: 700; }
+    .form-grid { display: grid; gap: 0.75rem; }
+    .form-grid input, .form-grid select, .form-grid textarea { padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; width: 100%; box-sizing: border-box; }
+    .form-grid textarea { height: 80px; resize: vertical; }
+    .form-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; justify-content: flex-end; }
+    .empty-state { grid-column: 1/-1; text-align: center; padding: 3rem; color: #94a3b8; }
+    .loading { text-align: center; padding: 2rem; color: #94a3b8; }
+  `]
+})
+export class ClientsComponent implements OnInit {
+  private http = inject(HttpClient);
+  private api = environment.apiUrl + '/api/v1';
+
+  clientes  = signal<Cliente[]>([]);
+  cargando  = signal(false);
+  showForm  = signal(false);
+  editando  = signal(false);
+  searchTerm = '';
+
+  form: Cliente = { nombre: '', tipo: 'persona_natural', ciudad: 'La Paz' };
+
+  ngOnInit() { this.cargarClientes(); }
+
+  cargarClientes() {
+    this.cargando.set(true);
+    this.http.get<Cliente[]>(this.api + '/clientes').subscribe({
+      next: data => { this.clientes.set(data); this.cargando.set(false); },
+      error: () => { this.cargando.set(false); }
+    });
+  }
+
+  buscar() {
+    const q = this.searchTerm.trim();
+    const url = q ? this.api + '/clientes?q=' + q : this.api + '/clientes';
+    this.http.get<Cliente[]>(url).subscribe(data => this.clientes.set(data));
+  }
+
+  guardar() {
+    if (!this.form.nombre) return;
+    const req = this.editando()
+      ? this.http.patch(this.api + '/clientes/' + this.form.id, this.form)
+      : this.http.post(this.api + '/clientes', this.form);
+    req.subscribe({ next: () => { this.cancelar(); this.cargarClientes(); }, error: () => {} });
+  }
+
+  editar(c: Cliente) { this.form = { ...c }; this.editando.set(true); this.showForm.set(true); }
+
+  eliminar(id: string) {
+    if (!confirm('¿Eliminar este cliente?')) return;
+    this.http.delete(this.api + '/clientes/' + id).subscribe(() => this.cargarClientes());
+  }
+
+  cancelar() { this.form = { nombre: '', tipo: 'persona_natural', ciudad: 'La Paz' }; this.editando.set(false); this.showForm.set(false); }
+}
+
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\documents\documents.component.html ===
+<div class="docs-layout">
+
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Generador de Documentos</h1>
+      <p class="page-sub">Documentos legales bolivianos profesionales en Word y PDF</p>
+    </div>
+    @if (step() !== 'select') {
+      <button class="btn-ghost" (click)="backToTemplates()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Volver
+      </button>
+    }
+  </header>
+
+  <!-- PASO 1: Seleccion de plantilla -->
+  @if (step() === 'select') {
+    <div class="templates-grid">
+      @for (t of templates; track t.id) {
+        <button class="template-card" (click)="selectTemplate(t)">
+          <span class="tmpl-icon">{{ t.icon }}</span>
+          <div class="tmpl-info">
+            <h3 class="tmpl-name">{{ t.nombre }}</h3>
+            <p class="tmpl-desc">{{ t.descripcion }}</p>
+          </div>
+          <svg class="tmpl-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+      }
+    </div>
+  }
+
+  <!-- PASO 2: Formulario -->
+  @if (step() === 'form') {
+    <div class="form-container">
+      <div class="form-header">
+        <span class="form-icon">{{ selectedTemplate()?.icon }}</span>
+        <div>
+          <h2 class="form-title">{{ selectedTemplate()?.nombre }}</h2>
+          <p class="form-sub">Completa los datos para generar el documento</p>
+        </div>
+      </div>
+
+      <div class="form-fields">
+        @for (campo of selectedTemplate()?.campos || []; track campo.id) {
+          <div class="field-group">
+            <label class="field-label">
+              {{ campo.label }}
+              @if (campo.requerido) { <span class="required">*</span> }
+            </label>
+
+            @if (campo.tipo === 'textarea') {
+              <textarea class="field-input field-textarea" [(ngModel)]="formData[campo.id]" [placeholder]="campo.placeholder || ''" rows="3"></textarea>
+            } @else if (campo.tipo === 'select') {
+              <select class="field-input field-select" [(ngModel)]="formData[campo.id]">
+                <option value="">Seleccionar...</option>
+                @for (op of campo.opciones; track op) {
+                  <option [value]="op">{{ op }}</option>
+                }
+              </select>
+            } @else {
+              <input class="field-input" [type]="campo.tipo" [(ngModel)]="formData[campo.id]" [placeholder]="campo.placeholder || ''">
+            }
+          </div>
+        }
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-primary" (click)="generateDocument()" [disabled]="isGenerating()">
+          @if (isGenerating()) {
+            <div class="btn-spinner"></div> Generando...
+          } @else {
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            Generar documento con IA
+          }
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- PASO 3: Preview + Descarga -->
+  @if (step() === 'preview') {
+    <div class="preview-container">
+      <div class="preview-toolbar">
+        <button class="btn-ghost" (click)="backToForm()">Editar datos</button>
+        <div class="download-btns">
+          @if (!isGenerating() && generatedContent()) {
+            <button class="btn-download word" (click)="downloadWord()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              Descargar Word
+            </button>
+            <button class="btn-download pdf" (click)="downloadPdf()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+              </svg>
+              Descargar PDF
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="preview-doc">
+        @if (isGenerating()) {
+          <div class="generating-state">
+            <div class="gen-spinner"></div>
+            <p>Generando documento con IA...</p>
+            <p class="gen-sub">Redactando con normativa boliviana vigente</p>
+          </div>
+        } @else {
+          <div class="doc-content" [innerHTML]="renderMarkdown(generatedContent())"></div>
+        }
+      </div>
+    </div>
+  }
+
+</div>
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\documents\documents.component.scss ===
+:host { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+
+.docs-layout { display:flex; flex-direction:column; height:100vh; overflow:hidden; background:var(--bg); }
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--surf);
+  border-bottom: 1px solid var(--bord);
+  flex-shrink: 0;
+}
+
+.page-title { font-family:"Playfair Display",serif; font-size:1.1rem; font-weight:600; color:var(--txt); }
+.page-sub { font-size:.72rem; color:var(--txt-3); margin-top:2px; }
+
+.btn-ghost {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--bord);
+  color: var(--txt-2);
+  font-size: .78rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: .15s;
+  &:hover { background: var(--surf-2); color: var(--txt); }
+}
+
+/* Templates grid */
+.templates-grid {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.template-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: var(--surf);
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: .15s;
+  font-family: 'DM Sans', sans-serif;
+
+  &:hover { border-color: var(--prim-3); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+}
+
+.tmpl-icon { font-size: 1.6rem; flex-shrink: 0; }
+.tmpl-info { flex: 1; }
+.tmpl-name { font-size: .88rem; font-weight: 500; color: var(--txt); margin-bottom: 2px; }
+.tmpl-desc { font-size: .75rem; color: var(--txt-3); }
+.tmpl-arrow { color: var(--txt-3); flex-shrink: 0; }
+
+/* Form */
+.form-container { padding: 24px; overflow-y: auto; max-width: 680px; width: 100%; margin: 0 auto; }
+
+.form-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--bord);
+}
+
+.form-icon { font-size: 2rem; }
+.form-title { font-family:"Playfair Display",serif; font-size:1.1rem; font-weight:600; color:var(--txt); }
+.form-sub { font-size:.75rem; color:var(--txt-3); margin-top:2px; }
+
+.form-fields { display: flex; flex-direction: column; gap: 16px; }
+
+.field-group { display: flex; flex-direction: column; gap: 6px; }
+.field-label { font-size: .8rem; font-weight: 500; color: var(--txt-2); }
+.required { color: var(--red); margin-left: 2px; }
+
+.field-input {
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: .85rem;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--txt);
+  background: var(--surf);
+  transition: border-color .2s;
+  outline: none;
+
+  &:focus { border-color: var(--prim-3); }
+  &::placeholder { color: var(--txt-3); }
+}
+
+.field-textarea { resize: vertical; min-height: 80px; }
+.field-select { cursor: pointer; }
+
+.form-actions { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--bord); }
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--prim);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 24px;
+  font-size: .88rem;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: .15s;
+
+  &:hover:not(:disabled) { background: var(--prim-2); }
+  &:disabled { opacity: .5; cursor: not-allowed; }
+}
+
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Preview */
+.preview-container { display:flex; flex-direction:column; flex:1; overflow:hidden; }
+
+.preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--surf);
+  border-bottom: 1px solid var(--bord);
+  flex-shrink: 0;
+}
+
+.download-btns { display: flex; gap: 8px; }
+
+.btn-download {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: .78rem;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: .15s;
+
+  &.word { background: #1a5296; color: white; border-color: #1a5296; &:hover { background: #0f3a72; } }
+  &.pdf  { background: #c0392b; color: white; border-color: #c0392b; &:hover { background: #962d22; } }
+}
+
+.preview-doc { flex:1; overflow-y:auto; padding:32px; }
+
+.generating-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  gap: 16px;
+}
+
+.gen-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--bord);
+  border-top-color: var(--prim);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+.gen-sub { font-size: .8rem; color: var(--txt-3); }
+
+.doc-content {
+  max-width: 700px;
+  margin: 0 auto;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .9rem;
+  line-height: 1.7;
+  color: var(--txt);
+  background: var(--surf);
+  padding: 40px 48px;
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+
+  ::ng-deep {
+    h3 { font-family:'Playfair Display',serif; font-size:1rem; font-weight:600; color:var(--prim); margin:18px 0 8px; border-bottom:1px solid var(--bord); padding-bottom:5px; }
+    h4 { font-size:.88rem; font-weight:500; color:var(--prim-2); margin:12px 0 5px; }
+    strong { color:var(--prim); font-weight:500; }
+    code { font-family:'DM Mono',monospace; font-size:.8em; background:var(--surf-2); padding:1px 5px; border-radius:3px; }
+    ul { padding-left:20px; margin:6px 0; }
+    li { margin:3px 0; }
+    p { margin:6px 0; }
+  }
+}
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\documents\documents.component.ts ===
+import { Component, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { LlmProxyService } from '../../core/services/llm-proxy.service';
+import { DocumentService } from '../../core/services/document.service';
+
+interface DocumentTemplate {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  icon: string;
+  campos: Campo[];
+  systemPrompt: string;
+}
+
+interface Campo {
+  id: string;
+  label: string;
+  tipo: 'text' | 'textarea' | 'select' | 'date';
+  placeholder?: string;
+  opciones?: string[];
+  requerido?: boolean;
+}
+
+@Component({
+  selector: 'app-documents',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './documents.component.html',
+  styleUrls: ['./documents.component.scss']
+})
+export class DocumentsComponent {
+  private llm    = inject(LlmProxyService);
+  private docSvc = inject(DocumentService);
+
+  selectedTemplate = signal<DocumentTemplate | null>(null);
+  formData: Record<string, string> = {};
+  isGenerating = signal(false);
+  generatedContent = signal('');
+  step = signal<'select' | 'form' | 'preview'>('select');
+
+  readonly templates: DocumentTemplate[] = [
+    {
+      id: 'demanda-civil',
+      nombre: 'Demanda Civil',
+      descripcion: 'Demanda ordinaria civil según Ley 439',
+      icon: '⚖',
+      campos: [
+        { id: 'demandante', label: 'Nombre del demandante', tipo: 'text', placeholder: 'Nombre completo', requerido: true },
+        { id: 'demandado',  label: 'Nombre del demandado',  tipo: 'text', placeholder: 'Nombre completo', requerido: true },
+        { id: 'objeto',     label: 'Objeto de la demanda',  tipo: 'textarea', placeholder: 'Describe el objeto de la demanda...', requerido: true },
+        { id: 'hechos',     label: 'Hechos',                tipo: 'textarea', placeholder: 'Describe los hechos cronologicamente...', requerido: true },
+        { id: 'juzgado',    label: 'Juzgado',               tipo: 'text', placeholder: 'Juzgado de Partido en lo Civil y Comercial N°...'},
+        { id: 'ciudad',     label: 'Ciudad',                tipo: 'select', opciones: ['La Paz','Cochabamba','Santa Cruz','Oruro','Potosi','Sucre','Tarija','Trinidad','Cobija'] }
+      ],
+      systemPrompt: 'Redacta una demanda civil formal y profesional para Bolivia según la Ley 439 (Codigo Procesal Civil). Incluye: encabezado formal con otorosi, seccion de hechos, fundamentos de derecho con articulos especificos, petitorio claro. Usa lenguaje juridico boliviano formal.'
+    },
+    {
+      id: 'contrato-compraventa',
+      nombre: 'Contrato de Compraventa',
+      descripcion: 'Contrato de compraventa de bien inmueble o mueble',
+      icon: '📋',
+      campos: [
+        { id: 'vendedor',   label: 'Vendedor',        tipo: 'text', placeholder: 'Nombre completo + CI', requerido: true },
+        { id: 'comprador',  label: 'Comprador',       tipo: 'text', placeholder: 'Nombre completo + CI', requerido: true },
+        { id: 'bien',       label: 'Bien objeto del contrato', tipo: 'textarea', placeholder: 'Describe el bien detalladamente...', requerido: true },
+        { id: 'precio',     label: 'Precio (Bs.)',    tipo: 'text', placeholder: '0.00', requerido: true },
+        { id: 'forma-pago', label: 'Forma de pago',  tipo: 'select', opciones: ['Contado','En cuotas','Transferencia bancaria','A credito'] },
+        { id: 'ciudad',     label: 'Ciudad',          tipo: 'select', opciones: ['La Paz','Cochabamba','Santa Cruz','Oruro','Potosi','Sucre','Tarija','Trinidad','Cobija'] }
+      ],
+      systemPrompt: 'Redacta un contrato de compraventa formal y completo para Bolivia segun el Codigo Civil (Ley 12760). Incluye: identificacion de las partes, objeto del contrato, precio y forma de pago, obligaciones de ambas partes, clausulas de garantia, clausula de saneamiento por eviccion, resolucion de controversias, firmas. Usa terminologia juridica boliviana correcta.'
+    },
+    {
+      id: 'poder-notarial',
+      nombre: 'Poder Notarial',
+      descripcion: 'Poder especial o general para representacion legal',
+      icon: '🏛',
+      campos: [
+        { id: 'poderdante', label: 'Poderdante (quien otorga)', tipo: 'text', placeholder: 'Nombre completo + CI', requerido: true },
+        { id: 'apoderado',  label: 'Apoderado (quien recibe)',  tipo: 'text', placeholder: 'Nombre completo + CI', requerido: true },
+        { id: 'tipo',       label: 'Tipo de poder',            tipo: 'select', opciones: ['Poder Especial','Poder General','Poder Especial Amplio'] },
+        { id: 'facultades', label: 'Facultades otorgadas',     tipo: 'textarea', placeholder: 'Describe las facultades especificas...', requerido: true },
+        { id: 'vigencia',   label: 'Vigencia',                 tipo: 'select', opciones: ['Sin fecha de vencimiento','1 año','2 años','Hasta revocacion expresa'] }
+      ],
+      systemPrompt: 'Redacta un poder notarial formal para Bolivia segun el Codigo Civil boliviano. Incluye: identificacion completa del poderdante y apoderado, tipo de poder, facultades otorgadas de manera clara y especifica, clausula de ratificacion, indicacion de que se otorga ante Notario de Fe Publica. Usa el lenguaje notarial boliviano correcto.'
+    },
+    {
+      id: 'memorial',
+      nombre: 'Memorial Judicial',
+      descripcion: 'Memorial de solicitud o apelacion ante organo judicial',
+      icon: '📄',
+      campos: [
+        { id: 'solicitante', label: 'Solicitante',        tipo: 'text', placeholder: 'Nombre completo', requerido: true },
+        { id: 'autoridad',   label: 'Autoridad destinataria', tipo: 'text', placeholder: 'Juez/Tribunal destinatario', requerido: true },
+        { id: 'expediente',  label: 'N° de Expediente',   tipo: 'text', placeholder: 'Número de expediente' },
+        { id: 'objeto',      label: 'Objeto del memorial',tipo: 'textarea', placeholder: 'Describe lo que solicitas...', requerido: true },
+        { id: 'fundamentos', label: 'Fundamentos',        tipo: 'textarea', placeholder: 'Base legal y argumental...' }
+      ],
+      systemPrompt: 'Redacta un memorial judicial boliviano formal y profesional. Incluye: encabezado correcto con autoridad, identificacion del solicitante, causa/expediente, otrosiDigo si corresponde, fundamentos de hecho y derecho con articulos del Codigo Procesal Civil boliviano (Ley 439), petitorio especifico y claro, formula de peticion boliviana estandar. Usa lenguaje juridico procesal boliviano.'
+    },
+    {
+      id: 'contrato-trabajo',
+      nombre: 'Contrato de Trabajo',
+      descripcion: 'Contrato laboral según Ley General del Trabajo',
+      icon: '👷',
+      campos: [
+        { id: 'empleador',  label: 'Empleador/Empresa',   tipo: 'text', placeholder: 'Nombre o razon social', requerido: true },
+        { id: 'trabajador', label: 'Trabajador',           tipo: 'text', placeholder: 'Nombre completo + CI', requerido: true },
+        { id: 'cargo',      label: 'Cargo/Funcion',        tipo: 'text', placeholder: 'Cargo a desempenar', requerido: true },
+        { id: 'salario',    label: 'Salario mensual (Bs)', tipo: 'text', placeholder: '0.00', requerido: true },
+        { id: 'jornada',    label: 'Jornada',              tipo: 'select', opciones: ['8 horas diarias / 48 semanales','Tiempo parcial','Por obra o tarea'] },
+        { id: 'modalidad',  label: 'Modalidad',            tipo: 'select', opciones: ['Indefinido','A plazo fijo','A prueba (90 dias)'] }
+      ],
+      systemPrompt: 'Redacta un contrato de trabajo formal para Bolivia segun la Ley General del Trabajo y su Decreto Reglamentario. Incluye: identificacion de las partes, objeto del contrato, jornada de trabajo, remuneracion con desglose de beneficios sociales (aguinaldo, vacaciones, AFP, CNS), obligaciones del trabajador y empleador, causales de rescision, ley aplicable. Cita los articulos especificos de la LGT boliviana.'
+    },
+    {
+      id: 'denuncia-penal',
+      nombre: 'Denuncia Penal',
+      descripcion: 'Denuncia formal ante el Ministerio Publico',
+      icon: '🚨',
+      campos: [
+        { id: 'denunciante', label: 'Denunciante',         tipo: 'text', placeholder: 'Nombre completo + CI', requerido: true },
+        { id: 'denunciado',  label: 'Denunciado (si conoce)', tipo: 'text', placeholder: 'Nombre o descripcion' },
+        { id: 'delito',      label: 'Delito presunto',     tipo: 'text', placeholder: 'Ej: estafa, robo, lesiones...', requerido: true },
+        { id: 'hechos',      label: 'Descripcion de hechos', tipo: 'textarea', placeholder: 'Relata los hechos cronologicamente con fechas, lugares y circunstancias...', requerido: true },
+        { id: 'pruebas',     label: 'Pruebas disponibles', tipo: 'textarea', placeholder: 'Describe las pruebas que puedes presentar...' }
+      ],
+      systemPrompt: 'Redacta una denuncia penal formal para Bolivia ante el Ministerio Publico segun el Codigo de Procedimiento Penal (Ley 1970). Incluye: identificacion del denunciante, descripcion clara de los hechos, tipificacion del delito segun el Codigo Penal boliviano (Ley 1768) con los articulos correspondientes, solicitud de investigacion, ofrecimiento de pruebas. Usa lenguaje juridico penal boliviano.'
+    }
+  ];
+
+  selectTemplate(template: DocumentTemplate): void {
+    this.selectedTemplate.set(template);
+    this.formData = {};
+    template.campos.forEach(c => this.formData[c.id] = '');
+    this.generatedContent.set('');
+    this.step.set('form');
+  }
+
+  async generateDocument(): Promise<void> {
+    const template = this.selectedTemplate();
+    if (!template) return;
+
+    this.isGenerating.set(true);
+    this.step.set('preview');
+
+    const fieldsSummary = template.campos
+      .map(c => `${c.label}: ${this.formData[c.id] || '(no especificado)'}`)
+      .join('\n');
+
+    const prompt = `${template.systemPrompt}
+
+DATOS DEL DOCUMENTO:
+${fieldsSummary}
+
+Genera el documento completo, formal y listo para usar en Bolivia.`;
+
+    try {
+      this.llm.chatWithContext([{ role: "user", content: prompt }], template.id).subscribe({
+        next: resp => {
+          this.generatedContent.set(resp.content);
+          this.isGenerating.set(false);
+        },
+        error: err => {
+          this.generatedContent.set('**Error al generar:** ' + err.message);
+          this.isGenerating.set(false);
+        }
+      });
+    } catch (err) {
+      this.isGenerating.set(false);
+    }
+  }
+
+  async downloadWord(): Promise<void> {
+    const template = this.selectedTemplate();
+    if (!template || !this.generatedContent()) return;
+    await this.docSvc.generateLegalDocument({
+      titulo: template.nombre,
+      ciudad: this.formData['ciudad'] || 'La Paz',
+      contenido: this.generatedContent()
+    });
+  }
+
+  async downloadPdf(): Promise<void> {
+    const template = this.selectedTemplate();
+    if (!template || !this.generatedContent()) return;
+    await this.docSvc.exportChatToPdf(this.generatedContent(), template.nombre);
+  }
+
+  renderMarkdown(content: string): string {
+    if (!content) return '';
+    return content
+      .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code>$1</code>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/gs, '<ul>$&</ul>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+  }
+
+  backToTemplates(): void { this.step.set('select'); this.selectedTemplate.set(null); }
+  backToForm(): void { this.step.set('form'); }
+}
+
+
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\library\library.component.html ===
+<div class="lib-root">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">⚖</span>
+      <span class="logo-text">Biblioteca</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item" [class.active]="searchMode() === 'semantica'" (click)="setMode('semantica')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+        </svg>
+        Búsqueda IA
+      </button>
+      <button class="nav-item" [class.active]="searchMode() === 'clasica'" (click)="setMode('clasica')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        Búsqueda clásica
+      </button>
+    </nav>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-section-title">Áreas del derecho</div>
+    <nav class="sidebar-areas">
+      @for (a of areas.slice(1); track a.valor) {
+        <button class="area-item"
+          [class.selected]="selectedArea === a.valor"
+          (click)="selectedArea = (selectedArea === a.valor ? '' : a.valor)">
+          <span class="area-dot" [style.background]="getAreaColor(a.valor)"></span>
+          {{ a.label }}
+          @if (stats() && stats()!.por_area[a.valor]) {
+            <span class="area-count">{{ stats()!.por_area[a.valor] }}</span>
+          }
+        </button>
+      }
+    </nav>
+
+    @if (stats()) {
+      <div class="sidebar-stats">
+        <div class="stat-pill">
+          <span class="stat-num">{{ stats()!.total_normas }}</span>
+          <span class="stat-lbl">normas</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-num">{{ stats()!.total_articulos_indexados }}</span>
+          <span class="stat-lbl">artículos</span>
+        </div>
+      </div>
+    }
+  </aside>
+
+  <!-- MAIN PANEL -->
+  <main class="main-panel">
+
+    <!-- HEADER -->
+    <header class="top-bar">
+      @if (view() !== 'home') {
+        <button class="back-btn" (click)="back()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          Volver
+        </button>
+      } @else {
+        <div class="top-breadcrumb">
+          <span>Biblioteca Legal Bolivia</span>
+          <span class="breadcrumb-sep">·</span>
+          <span class="breadcrumb-mode">
+            {{ searchMode() === 'semantica' ? 'Búsqueda semántica con IA' : 'Búsqueda por palabras clave' }}
+          </span>
+        </div>
+      }
+    </header>
+
+    <!-- SEARCH BOX -->
+    @if (view() !== 'detail') {
+      <div class="search-zone">
+        @if (searchMode() === 'semantica') {
+          <div class="mode-badge ia">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+            </svg>
+            Búsqueda semántica — entiende el significado, no solo palabras exactas
+          </div>
+        } @else {
+          <div class="mode-badge clasica">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            Búsqueda por palabras clave — coincidencia exacta de términos
+          </div>
+        }
+
+        <div class="search-row">
+          <div class="search-input-wrap" [class.ia-mode]="searchMode() === 'semantica'">
+            <svg class="search-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input
+              class="search-input"
+              [(ngModel)]="searchQuery"
+              (keydown)="onKeydown($event)"
+              [placeholder]="searchMode() === 'semantica'
+                ? 'Ej: despido injustificado en el embarazo, límites a la propiedad privada...'
+                : 'Ej: prescripción, divorcio, amparo, indemnización...'">
+            @if (searchQuery) {
+              <button class="clear-btn" (click)="searchQuery = ''">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            }
+          </div>
+          <button class="btn-search" (click)="search()" [disabled]="isSearching() || !searchQuery.trim()">
+            @if (isSearching()) {
+              <span class="btn-spinner"></span>
+              Buscando...
+            } @else {
+              Buscar
+            }
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- CONTENT -->
+    <div class="content-area">
+
+      <!-- HOME: normas list -->
+      @if (view() === 'home') {
+        <div class="home-view">
+          <h2 class="section-heading">Normativa disponible</h2>
+          <div class="normas-grid">
+            @for (norma of normas(); track norma.id) {
+              <div class="norma-card" (click)="openNorma(norma.id)">
+                <div class="norma-card-top">
+                  <span class="norma-tipo-icon">{{ getTipoIcon(norma.tipo) }}</span>
+                  <span class="area-chip" [style.background]="getAreaColor(norma.area) + '15'" [style.color]="getAreaColor(norma.area)">
+                    {{ norma.area }}
+                  </span>
+                </div>
+                <h3 class="norma-card-title">{{ norma.titulo }}</h3>
+                <div class="norma-card-footer">
+                  <span class="norma-art-count">{{ norma.total_articulos }} artículos</span>
+                  <span class="norma-fecha">{{ norma.fecha | date:'yyyy' }}</span>
+                  <svg class="arrow-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- SEARCH RESULTS -->
+      @if (view() === 'search') {
+        <div class="results-view">
+
+          @if (isSearching()) {
+            <div class="loading-state">
+              <div class="loading-ring"></div>
+              <p>{{ searchMode() === 'semantica' ? 'Analizando significado con IA...' : 'Buscando en normativa boliviana...' }}</p>
+            </div>
+          }
+
+          <!-- Resultados semanticos -->
+          @if (!isSearching() && searchMode() === 'semantica') {
+            @if (semanticResults().length === 0) {
+              <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <h3>Sin resultados</h3>
+                <p>No se encontraron artículos relacionados con "<strong>{{ searchQuery }}</strong>"</p>
+                <p class="empty-hint">Prueba con términos más generales: despido, propiedad, contrato, libertad...</p>
+              </div>
+            } @else {
+              <div class="results-header">
+                <p class="results-count">
+                  <strong>{{ semanticResults().length }}</strong> artículos relevantes para
+                  "<em>{{ searchQuery }}</em>"
+                </p>
+                <span class="ia-tag">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+                  </svg>
+                  ordenados por relevancia semántica
+                </span>
+              </div>
+              <div class="semantic-list">
+                @for (r of semanticResults(); track $index) {
+                  <div class="semantic-card">
+                    <div class="sem-card-left">
+                      <div class="sim-bar-wrap">
+                        <div class="sim-bar" [style.height.%]="r.similitud * 100" [class]="getSimilitudClass(r.similitud)"></div>
+                      </div>
+                      <span class="sim-pct">{{ (r.similitud * 100).toFixed(0) }}%</span>
+                    </div>
+                    <div class="sem-card-body">
+                      <div class="sem-card-top">
+                        <span class="sem-norma">{{ r.norma_titulo }}</span>
+                        <span class="sem-art-badge">Art. {{ r.articulo }}</span>
+                      </div>
+                      <p class="sem-texto">{{ r.texto }}</p>
+                      <div class="sem-card-footer">
+                        @if (r.area) {
+                          <span class="area-chip sm" [style.background]="getAreaColor(r.area) + '15'" [style.color]="getAreaColor(r.area)">
+                            {{ r.area }}
+                          </span>
+                        }
+                        <span class="sim-label" [class]="getSimilitudClass(r.similitud)">
+                          {{ getSimilitudLabel(r.similitud) }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          }
+
+          <!-- Resultados clasicos -->
+          @if (!isSearching() && searchMode() === 'clasica') {
+            @if (results().length === 0) {
+              <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <h3>Sin resultados</h3>
+                <p>No se encontraron normas con "<strong>{{ searchQuery }}</strong>"</p>
+              </div>
+            } @else {
+              <div class="results-header">
+                <p class="results-count"><strong>{{ results().length }}</strong> norma(s) encontrada(s)</p>
+              </div>
+              <div class="classic-list">
+                @for (r of results(); track r.id) {
+                  <div class="classic-card" (click)="openNorma(r.id)">
+                    <div class="classic-icon">{{ getTipoIcon(r.tipo) }}</div>
+                    <div class="classic-body">
+                      <h3 class="classic-title">{{ r.titulo }}</h3>
+                      <p class="classic-resumen">{{ r.resumen }}</p>
+                      @if (r.articulos_relevantes.length > 0) {
+                        <div class="arts-preview">
+                          @for (art of r.articulos_relevantes.slice(0, 2); track art.numero) {
+                            <div class="art-preview-item">
+                              <strong>Art. {{ art.numero }}</strong> — {{ art.texto.substring(0, 100) }}...
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                    <div class="classic-right">
+                      <span class="area-chip" [style.background]="getAreaColor(r.area) + '15'" [style.color]="getAreaColor(r.area)">{{ r.area }}</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--txt-3)">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                      </svg>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          }
+
+        </div>
+      }
+
+      <!-- DETALLE DE NORMA -->
+      @if (view() === 'detail' && selectedNorma()) {
+        <div class="detail-view">
+          <div class="detail-hero">
+            <div class="detail-icon-wrap">{{ getTipoIcon(selectedNorma().tipo) }}</div>
+            <div>
+              <h2 class="detail-title">{{ selectedNorma().titulo }}</h2>
+              <div class="detail-chips">
+                <span class="area-chip" [style.background]="getAreaColor(selectedNorma().area) + '15'" [style.color]="getAreaColor(selectedNorma().area)">
+                  {{ selectedNorma().area }}
+                </span>
+                <span class="chip-neutral">{{ selectedNorma().tipo }}</span>
+                <span class="chip-neutral">{{ selectedNorma().fecha | date:'dd/MM/yyyy' }}</span>
+                @if (selectedNorma().fuente) {
+                  <span class="chip-neutral">{{ selectedNorma().fuente }}</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          @if (selectedNorma().resumen) {
+            <div class="detail-resumen">
+              <h3 class="detail-section-title">Descripción</h3>
+              <p>{{ selectedNorma().resumen }}</p>
+            </div>
+          }
+
+          <div class="detail-articulos">
+            <h3 class="detail-section-title">
+              Artículos indexados
+              <span class="art-total-badge">{{ selectedNorma().articulos?.length || 0 }}</span>
+            </h3>
+            <div class="articulos-list">
+              @for (art of selectedNorma().articulos; track art.num) {
+                <div class="articulo-item">
+                  <div class="art-num-badge">Art. {{ art.num }}</div>
+                  <p class="art-texto">{{ art.texto }}</p>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+    </div>
+  </main>
+
+</div>
+
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\library\library.component.scss ===
+/* ─── LAYOUT ROOT ─────────────────────────────────────────── */
+:host { display: flex; height: 100vh; overflow: hidden; }
+
+.lib-root {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ─── SIDEBAR ──────────────────────────────────────────────── */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--surf);
+  border-right: 1px solid var(--bord);
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 16px;
+  overflow-y: auto;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--bord);
+  margin-bottom: 8px;
+}
+.logo-icon { font-size: 1.1rem; }
+.logo-text {
+  font-family: 'Playfair Display', serif;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--txt);
+  letter-spacing: .01em;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 10px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--txt-2);
+  font-size: .8rem;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  text-align: left;
+  transition: background .15s, color .15s;
+  svg { flex-shrink: 0; }
+  &:hover { background: var(--surf-2); color: var(--txt); }
+  &.active {
+    background: var(--prim);
+    color: white;
+  }
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: var(--bord);
+  margin: 12px 10px;
+}
+
+.sidebar-section-title {
+  font-size: .68rem;
+  font-weight: 500;
+  color: var(--txt-3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: 0 18px 8px;
+}
+
+.sidebar-areas {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 10px;
+}
+
+.area-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--txt-2);
+  font-size: .78rem;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: background .15s;
+  &:hover { background: var(--surf-2); }
+  &.selected { background: var(--surf-2); font-weight: 500; color: var(--txt); }
+}
+.area-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.area-count {
+  margin-left: auto;
+  font-size: .7rem;
+  color: var(--txt-3);
+  background: var(--bg);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.sidebar-stats {
+  display: flex;
+  gap: 6px;
+  padding: 16px 10px 0;
+  margin-top: auto;
+}
+.stat-pill {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  padding: 8px 6px;
+  text-align: center;
+}
+.stat-num {
+  display: block;
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--prim);
+  font-family: 'DM Mono', monospace;
+}
+.stat-lbl {
+  display: block;
+  font-size: .65rem;
+  color: var(--txt-3);
+  margin-top: 1px;
+}
+
+/* ─── MAIN PANEL ───────────────────────────────────────────── */
+.main-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ─── TOP BAR ──────────────────────────────────────────────── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  padding: 12px 28px;
+  border-bottom: 1px solid var(--bord);
+  background: var(--surf);
+  min-height: 48px;
+  flex-shrink: 0;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  color: var(--txt-2);
+  font-size: .8rem;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 7px;
+  transition: background .15s, color .15s;
+  &:hover { background: var(--surf-2); color: var(--txt); }
+}
+
+.top-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .8rem;
+  color: var(--txt-3);
+}
+.breadcrumb-sep { color: var(--bord-2); }
+.breadcrumb-mode { color: var(--txt-2); font-weight: 500; }
+
+/* ─── SEARCH ZONE ──────────────────────────────────────────── */
+.search-zone {
+  padding: 16px 28px 14px;
+  border-bottom: 1px solid var(--bord);
+  background: var(--surf);
+  flex-shrink: 0;
+}
+
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .7rem;
+  font-weight: 500;
+  border-radius: 20px;
+  padding: 3px 10px;
+  margin-bottom: 10px;
+  &.ia {
+    background: rgba(15,31,53,.06);
+    color: var(--prim-2);
+    border: 1px solid rgba(15,31,53,.12);
+  }
+  &.clasica {
+    background: var(--bg);
+    color: var(--txt-3);
+    border: 1px solid var(--bord);
+  }
+}
+
+.search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1.5px solid var(--bord);
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: var(--bg);
+  transition: border-color .2s, background .2s;
+  &:focus-within {
+    border-color: var(--prim-3);
+    background: white;
+  }
+  &.ia-mode:focus-within {
+    border-color: var(--prim);
+    box-shadow: 0 0 0 3px rgba(15,31,53,.07);
+  }
+}
+.search-ico { color: var(--txt-3); flex-shrink: 0; }
+.search-input {
+  flex: 1;
+  border: none;
+  background: none;
+  font-size: .875rem;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--txt);
+  outline: none;
+  &::placeholder { color: var(--txt-3); }
+}
+.clear-btn {
+  border: none;
+  background: none;
+  color: var(--txt-3);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  border-radius: 4px;
+  &:hover { color: var(--txt-2); background: var(--surf-2); }
+}
+
+.btn-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--prim);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 22px;
+  font-size: .85rem;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, opacity .15s;
+  &:hover:not(:disabled) { background: var(--prim-2); }
+  &:disabled { opacity: .5; cursor: not-allowed; }
+}
+.btn-spinner {
+  width: 13px; height: 13px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+/* ─── CONTENT AREA ─────────────────────────────────────────── */
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+}
+
+/* ─── HOME VIEW ────────────────────────────────────────────── */
+.section-heading {
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--txt);
+  margin-bottom: 16px;
+}
+
+.normas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.norma-card {
+  background: var(--surf);
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: box-shadow .2s, border-color .2s, transform .15s;
+  &:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--bord-2);
+    transform: translateY(-1px);
+  }
+}
+.norma-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.norma-tipo-icon { font-size: 1.2rem; }
+.norma-card-title {
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--txt);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+.norma-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .72rem;
+  color: var(--txt-3);
+}
+.norma-art-count { flex: 1; }
+.norma-fecha { }
+.arrow-ico { margin-left: auto; color: var(--txt-3); }
+
+/* ─── LOADING ──────────────────────────────────────────────── */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 60px 0;
+  color: var(--txt-3);
+  font-size: .85rem;
+}
+.loading-ring {
+  width: 32px; height: 32px;
+  border: 2.5px solid var(--bord);
+  border-top-color: var(--prim);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── EMPTY STATE ──────────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 60px 0;
+  color: var(--txt-3);
+}
+.empty-icon { font-size: 2rem; margin-bottom: 12px; }
+.empty-state h3 { font-size: .95rem; color: var(--txt-2); margin-bottom: 8px; }
+.empty-state p { font-size: .82rem; }
+.empty-hint { margin-top: 6px; font-size: .78rem; color: var(--txt-3); }
+
+/* ─── RESULTS HEADER ───────────────────────────────────────── */
+.results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.results-count { font-size: .82rem; color: var(--txt-2); }
+.results-count strong { color: var(--txt); }
+.results-count em { font-style: italic; color: var(--txt-3); }
+
+.ia-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .7rem;
+  color: var(--prim-2);
+  background: rgba(15,31,53,.05);
+  border: 1px solid rgba(15,31,53,.1);
+  border-radius: 20px;
+  padding: 3px 9px;
+}
+
+/* ─── SEMANTIC RESULTS ─────────────────────────────────────── */
+.semantic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.semantic-card {
+  display: flex;
+  gap: 14px;
+  background: var(--surf);
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  padding: 16px;
+  transition: box-shadow .2s, border-color .2s;
+  &:hover {
+    box-shadow: var(--shadow);
+    border-color: var(--bord-2);
+  }
+}
+
+.sem-card-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  width: 32px;
+}
+.sim-bar-wrap {
+  width: 4px;
+  height: 48px;
+  background: var(--bg);
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+.sim-bar {
+  width: 100%;
+  border-radius: 2px;
+  transition: height .3s;
+  &.sim-alta  { background: var(--green); }
+  &.sim-media { background: var(--gold); }
+  &.sim-baja  { background: var(--bord-2); }
+}
+.sim-pct {
+  font-size: .65rem;
+  font-family: 'DM Mono', monospace;
+  color: var(--txt-3);
+  font-weight: 500;
+}
+
+.sem-card-body { flex: 1; min-width: 0; }
+
+.sem-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.sem-norma {
+  font-size: .75rem;
+  font-weight: 500;
+  color: var(--txt-2);
+  line-height: 1.3;
+}
+.sem-art-badge {
+  font-size: .72rem;
+  font-family: 'DM Mono', monospace;
+  background: var(--prim);
+  color: white;
+  border-radius: 5px;
+  padding: 2px 7px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sem-texto {
+  font-size: .83rem;
+  color: var(--txt);
+  line-height: 1.55;
+  margin-bottom: 10px;
+}
+
+.sem-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sim-label {
+  font-size: .7rem;
+  font-weight: 500;
+  &.sim-alta  { color: var(--green); }
+  &.sim-media { color: var(--gold); }
+  &.sim-baja  { color: var(--txt-3); }
+}
+
+/* ─── CLASSIC RESULTS ──────────────────────────────────────── */
+.classic-list { display: flex; flex-direction: column; gap: 10px; }
+
+.classic-card {
+  display: flex;
+  gap: 14px;
+  background: var(--surf);
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  align-items: flex-start;
+  transition: box-shadow .2s, border-color .2s;
+  &:hover { box-shadow: var(--shadow); border-color: var(--bord-2); }
+}
+.classic-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+.classic-body { flex: 1; min-width: 0; }
+.classic-title { font-size: .88rem; font-weight: 500; color: var(--txt); margin-bottom: 6px; }
+.classic-resumen { font-size: .78rem; color: var(--txt-2); line-height: 1.5; margin-bottom: 10px; }
+.arts-preview { display: flex; flex-direction: column; gap: 4px; }
+.art-preview-item {
+  font-size: .75rem;
+  color: var(--txt-3);
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 6px 10px;
+  border-left: 2px solid var(--bord-2);
+  strong { color: var(--txt-2); }
+}
+.classic-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ─── DETAIL VIEW ──────────────────────────────────────────── */
+.detail-view { max-width: 780px; }
+
+.detail-hero {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+.detail-icon-wrap { font-size: 2rem; flex-shrink: 0; margin-top: 4px; }
+.detail-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--txt);
+  line-height: 1.3;
+  margin-bottom: 10px;
+}
+.detail-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip-neutral {
+  font-size: .72rem;
+  background: var(--bg);
+  border: 1px solid var(--bord);
+  color: var(--txt-3);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.detail-resumen {
+  background: var(--surf);
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  p { font-size: .85rem; color: var(--txt-2); line-height: 1.6; }
+}
+
+.detail-section-title {
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--txt);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.art-total-badge {
+  font-size: .7rem;
+  background: var(--prim);
+  color: white;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-family: 'DM Mono', monospace;
+}
+
+.articulos-list { display: flex; flex-direction: column; gap: 8px; }
+
+.articulo-item {
+  display: flex;
+  gap: 12px;
+  background: var(--surf);
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+  padding: 14px 16px;
+  align-items: flex-start;
+  transition: border-color .15s;
+  &:hover { border-color: var(--bord-2); }
+}
+.art-num-badge {
+  font-size: .72rem;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+  color: var(--prim);
+  background: rgba(15,31,53,.06);
+  border-radius: 6px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.art-texto {
+  font-size: .83rem;
+  color: var(--txt);
+  line-height: 1.6;
+}
+
+/* ─── SHARED CHIPS ─────────────────────────────────────────── */
+.area-chip {
+  font-size: .72rem;
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 2px 8px;
+  &.sm { font-size: .68rem; padding: 2px 7px; }
+}
+
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\library\library.component.ts ===
+import { Component, inject, signal, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+
+interface SearchResult {
+  id: string;
+  tipo: string;
+  titulo: string;
+  area: string;
+  resumen: string;
+  articulos_relevantes: { numero: string; texto: string; relevancia: number }[];
+  score: number;
+}
+
+interface SemanticResult {
+  norma_titulo: string;
+  articulo: string;
+  texto: string;
+  area: string | null;
+  tipo: string | null;
+  similitud: number;
+}
+
+interface Norma {
+  id: string;
+  tipo: string;
+  titulo: string;
+  area: string;
+  fecha: string;
+  total_articulos: number;
+}
+
+interface LibStats {
+  total_normas: number;
+  total_articulos_indexados: number;
+  por_area: Record<string, number>;
+  por_tipo: Record<string, number>;
+  fuentes: string[];
+}
+
+@Component({
+  selector: 'app-library',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './library.component.html',
+  styleUrls: ['./library.component.scss']
+})
+export class LibraryComponent implements OnInit {
+  private http = inject(HttpClient);
+  private apiUrl = environment.apiUrl + '/api/v1/library';
+
+  searchQuery      = '';
+  selectedArea     = '';
+  selectedTipo     = '';
+  searchMode       = signal<'semantica' | 'clasica'>('semantica');
+  isSearching      = signal(false);
+  results          = signal<SearchResult[]>([]);
+  semanticResults  = signal<SemanticResult[]>([]);
+  normas           = signal<Norma[]>([]);
+  stats            = signal<LibStats | null>(null);
+  selectedNorma    = signal<any>(null);
+  view             = signal<'home' | 'search' | 'detail'>('home');
+  hasSearched      = signal(false);
+
+  readonly areas = [
+    { valor: '',               label: 'Todas las áreas' },
+    { valor: 'civil',          label: 'Civil' },
+    { valor: 'penal',          label: 'Penal' },
+    { valor: 'laboral',        label: 'Laboral' },
+    { valor: 'constitucional', label: 'Constitucional' },
+    { valor: 'familiar',       label: 'Familiar' },
+    { valor: 'administrativo', label: 'Administrativo' }
+  ];
+
+  readonly tipos = [
+    { valor: '',             label: 'Todos los tipos' },
+    { valor: 'constitucion', label: 'Constitución' },
+    { valor: 'codigo',       label: 'Código' },
+    { valor: 'ley',          label: 'Ley' },
+    { valor: 'sentencia',    label: 'Sentencia' }
+  ];
+
+  readonly areaColors: Record<string, string> = {
+    'civil':          '#1a5296',
+    'penal':          '#c0392b',
+    'laboral':        '#1a6b3c',
+    'constitucional': '#6c3483',
+    'familiar':       '#c4922a',
+    'administrativo': '#2e86ab'
+  };
+
+  ngOnInit(): void {
+    this.loadStats();
+    this.loadNormas();
+  }
+
+  loadStats(): void {
+    this.http.get<LibStats>(this.apiUrl + '/stats').subscribe({
+      next: s => this.stats.set(s),
+      error: () => {}
+    });
+  }
+
+  loadNormas(): void {
+    this.http.get<Norma[]>(this.apiUrl + '/normas').subscribe({
+      next: n => this.normas.set(n),
+      error: () => {}
+    });
+  }
+
+  search(): void {
+    if (!this.searchQuery.trim()) return;
+    this.isSearching.set(true);
+    this.hasSearched.set(true);
+    this.view.set('search');
+
+    if (this.searchMode() === 'semantica') {
+      const params: any = { q: this.searchQuery, limit: 8 };
+      if (this.selectedArea) params.area = this.selectedArea;
+      this.http.get<SemanticResult[]>(this.apiUrl + '/search-semantic', { params }).subscribe({
+        next: r => { this.semanticResults.set(r); this.isSearching.set(false); },
+        error: () => { this.isSearching.set(false); }
+      });
+    } else {
+      const params: any = { q: this.searchQuery };
+      if (this.selectedArea) params.area = this.selectedArea;
+      if (this.selectedTipo) params.tipo = this.selectedTipo;
+      this.http.get<SearchResult[]>(this.apiUrl + '/search', { params }).subscribe({
+        next: r => { this.results.set(r); this.isSearching.set(false); },
+        error: () => { this.isSearching.set(false); }
+      });
+    }
+  }
+
+  setMode(mode: 'semantica' | 'clasica'): void {
+    this.searchMode.set(mode);
+    this.hasSearched.set(false);
+    this.results.set([]);
+    this.semanticResults.set([]);
+    this.searchQuery = '';
+  }
+
+  openNorma(id: string): void {
+    this.http.get(this.apiUrl + '/norma/' + id).subscribe({
+      next: n => { this.selectedNorma.set(n); this.view.set('detail'); },
+      error: () => {}
+    });
+  }
+
+  onKeydown(e: KeyboardEvent): void {
+    if (e.key === 'Enter') this.search();
+  }
+
+  getAreaColor(area: string): string {
+    return this.areaColors[area] || '#7a7268';
+  }
+
+  getAreaLabel(area: string): string {
+    return this.areas.find(a => a.valor === area)?.label || area;
+  }
+
+  getTipoIcon(tipo: string): string {
+    const icons: Record<string, string> = {
+      'constitucion': '🏛',
+      'codigo':       '📚',
+      'ley':          '📋',
+      'decreto':      '📜',
+      'sentencia':    '⚖'
+    };
+    return icons[tipo] || '📄';
+  }
+
+  getSimilitudLabel(s: number): string {
+    if (s >= 0.75) return 'Alta relevancia';
+    if (s >= 0.55) return 'Relevante';
+    return 'Relacionado';
+  }
+
+  getSimilitudClass(s: number): string {
+    if (s >= 0.75) return 'sim-alta';
+    if (s >= 0.55) return 'sim-media';
+    return 'sim-baja';
+  }
+
+  getObjectKeys(obj: Record<string, number>): string[] {
+    return obj ? Object.keys(obj) : [];
+  }
+
+  goHome(): void {
+    this.view.set('home');
+    this.hasSearched.set(false);
+    this.selectedNorma.set(null);
+    this.results.set([]);
+    this.semanticResults.set([]);
+    this.searchQuery = '';
+  }
+
+  back(): void {
+    if (this.view() === 'detail') {
+      this.view.set(this.hasSearched() ? 'search' : 'home');
+      this.selectedNorma.set(null);
+    } else {
+      this.goHome();
+    }
+  }
+}
+
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\login\login.component.ts ===
+import { Component, signal, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { SupabaseService } from '../../core/services/supabase.service';
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="logo-icon">⚖️</span>
+      <h1>MAJA JURÍDICO</h1>
+      <p>Bolivia · Sistema Legal</p>
+    </div>
+
+    <div class="login-form">
+      <div class="field">
+        <label>Correo electrónico</label>
+        <input
+          type="email"
+          [(ngModel)]="email"
+          placeholder="correo@ejemplo.com"
+          [disabled]="loading()"
+          (keydown.enter)="login()" />
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input
+          type="password"
+          [(ngModel)]="password"
+          placeholder="••••••••"
+          [disabled]="loading()"
+          (keydown.enter)="login()" />
+      </div>
+
+      <div class="error-msg" *ngIf="error()">{{ error() }}</div>
+
+      <button class="btn-login" (click)="login()" [disabled]="loading()">
+        {{ loading() ? 'Ingresando...' : 'Ingresar' }}
+      </button>
+    </div>
+  </div>
+</div>
+  `,
+  styles: [`
+    .login-wrapper {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .login-card {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 3rem 2.5rem;
+      width: 100%;
+      max-width: 420px;
+    }
+    .login-logo {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .logo-icon {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 0.75rem;
+    }
+    .login-logo h1 {
+      color: white;
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin: 0;
+    }
+    .login-logo p {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.85rem;
+      margin: 0.25rem 0 0;
+    }
+    .field {
+      margin-bottom: 1.25rem;
+    }
+    .field label {
+      display: block;
+      color: rgba(255,255,255,0.7);
+      font-size: 0.85rem;
+      margin-bottom: 0.4rem;
+      font-weight: 500;
+    }
+    .field input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      color: white;
+      font-size: 0.95rem;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .field input:focus {
+      outline: none;
+      border-color: rgba(102,126,234,0.8);
+    }
+    .field input::placeholder { color: rgba(255,255,255,0.3); }
+    .field input:disabled { opacity: 0.5; }
+    .error-msg {
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .btn-login {
+      width: 100%;
+      padding: 0.85rem;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-login:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
+  `]
+})
+export class LoginComponent {
+  private supabase = inject(SupabaseService);
+  private router   = inject(Router);
+
+  email    = '';
+  password = '';
+  loading  = signal(false);
+  error    = signal('');
+
+  login() {
+    if (!this.email || !this.password) {
+      this.error.set('Ingresa tu correo y contraseña.');
+      return;
+    }
+    this.loading.set(true);
+    this.error.set('');
+    this.supabase.signInWithPassword(this.email, this.password).subscribe({
+      next: () => this.router.navigate(['/chat']),
+      error: (err) => {
+        this.error.set('Credenciales incorrectas. Intenta de nuevo.');
+        this.loading.set(false);
+      }
+    });
+  }
+}
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\my-templates\my-templates.component.ts ===
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-my-templates',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:80vh;gap:16px;font-family:Georgia,serif;color:#7a6e5e">
+      <div style="font-size:3rem">📋</div>
+      <h2 style="color:#1a3a5c">Mis Plantillas</h2>
+      <p>Sube tus documentos Word y genera nuevos con tu mismo estilo</p>
+    </div>
+  `
+})
+export class MyTemplatesComponent {}
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\repository\repository.component.html ===
+<div class="repo-layout">
+
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      @if (view() !== 'home') {
+        <button class="back-btn" (click)="goHome()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+        </button>
+      }
+      <div>
+        <h1 class="page-title">Repositorio de Muestras</h1>
+        @if (stats()) {
+          <p class="page-sub">{{ stats().total_archivos | number }} archivos Word · {{ stats().total_mb }} MB · {{ stats().carpetas }} carpetas</p>
+        }
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="search-box" [class.active]="searchQuery">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input [(ngModel)]="searchQuery" (keydown)="onKeydown($event)" placeholder="Buscar en 5,737 muestras...">
+        @if (searchQuery) {
+          <button (click)="searchQuery=''; search()">×</button>
+        }
+      </div>
+      @if (view() === 'carpeta') {
+        <button class="btn-search" (click)="search()">Buscar</button>
+      } @else {
+        <button class="btn-search" (click)="globalSearch()">Buscar</button>
+      }
+    </div>
+  </header>
+
+  <div class="main-content">
+
+    <!-- HOME -->
+    @if (view() === 'home') {
+      <div class="home-view">
+        <div class="carpetas-grid">
+          @for (cat of carpetas(); track cat.nombre) {
+            <button class="carpeta-card" (click)="openCarpeta(cat)">
+              <div class="carpeta-icon">{{ cat.icono }}</div>
+              <div class="carpeta-info">
+                <h3 class="carpeta-nombre">{{ cat.categoria }}</h3>
+                <p class="carpeta-sub">{{ cat.nombre }}</p>
+                <p class="carpeta-count">{{ cat.total | number }} documentos</p>
+              </div>
+              <div class="carpeta-arrow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+              </div>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- LISTA DE MUESTRAS -->
+    @if (view() === 'carpeta') {
+      <div class="list-view">
+        <div class="list-header">
+          @if (selectedCarpeta()) {
+            <span class="list-cat-icon">{{ selectedCarpeta()!.icono }}</span>
+            <div>
+              <h2 class="list-title">{{ selectedCarpeta()!.categoria }}</h2>
+              <p class="list-sub">{{ totalResults() | number }} documentos{{ searchQuery ? ' para "' + searchQuery + '"' : '' }}</p>
+            </div>
+          } @else {
+            <div>
+              <h2 class="list-title">Resultados de busqueda</h2>
+              <p class="list-sub">{{ totalResults() | number }} resultados para "{{ searchQuery }}"</p>
+            </div>
+          }
+        </div>
+
+        @if (isLoading()) {
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Cargando documentos...</p>
+          </div>
+        } @else {
+          <div class="docs-list">
+            @for (doc of results(); track doc.id) {
+              <div class="doc-row">
+                <div class="doc-row-icon">📄</div>
+                <div class="doc-row-info">
+                  <p class="doc-row-nombre">{{ doc.nombre }}</p>
+                  <p class="doc-row-meta">
+                    {{ doc.subcarpeta || doc.carpeta }}
+                    · {{ formatSize(doc.tamanio) }}
+                  </p>
+                </div>
+                <div class="doc-row-actions">
+                  <button class="btn-download-sm" (click)="downloadOriginal(doc)" title="Descargar Word original">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Word
+                  </button>
+                  <button class="btn-ai-sm" (click)="openWithAI(doc)" title="Completar con IA">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    IA
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Paginacion -->
+          @if (totalPages() > 1) {
+            <div class="pagination">
+              <button class="page-btn" [disabled]="currentPage() === 1" (click)="search(currentPage() - 1)">‹</button>
+              @for (p of getPages(); track p) {
+                <button class="page-btn" [class.active]="p === currentPage()" (click)="search(p)">{{ p }}</button>
+              }
+              <button class="page-btn" [disabled]="currentPage() === totalPages()" (click)="search(currentPage() + 1)">›</button>
+              <span class="page-info">Pag. {{ currentPage() }} de {{ totalPages() }}</span>
+            </div>
+          }
+        }
+      </div>
+    }
+
+    <!-- IA COMPLETE -->
+    @if (view() === 'ai-complete') {
+      <div class="ai-view">
+        <div class="ai-header">
+          <button class="btn-ghost" (click)="backToCarpeta()">← Volver</button>
+          <div>
+            <h2 class="ai-title">Completar con IA</h2>
+            <p class="ai-sub">{{ selectedMuestra()?.nombre }}</p>
+          </div>
+        </div>
+
+        @if (!aiResult()) {
+          <div class="ai-form">
+            <label class="field-label">Describe los datos especificos del documento</label>
+            <p class="field-hint">Indica las partes, fechas, montos, hechos y cualquier dato especifico que necesitas en el documento</p>
+            <textarea
+              class="ai-textarea"
+              [(ngModel)]="aiInstructions"
+              [placeholder]="'Ej: Completar para ' + (selectedMuestra()?.nombre || 'este documento') + '. Indicar: partes involucradas con CI, fechas, montos, ciudad, y cualquier dato especifico del caso...'"
+              rows="6">
+            </textarea>
+            <button class="btn-generate" (click)="completeWithAI()" [disabled]="isGenerating() || !aiInstructions.trim()">
+              @if (isGenerating()) {
+                <div class="btn-spinner"></div>
+                Generando documento...
+              } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Generar con IA
+              }
+            </button>
+          </div>
+        } @else {
+          <div class="ai-result">
+            <div class="result-toolbar">
+              <button class="btn-ghost" (click)="aiResult.set(''); aiInstructions = ''">Regenerar</button>
+              <div class="download-btns">
+                <button class="btn-dl word" (click)="downloadAiWord()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  Descargar Word
+                </button>
+                <button class="btn-dl pdf" (click)="downloadAiPdf()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                  </svg>
+                  Descargar PDF
+                </button>
+              </div>
+            </div>
+            <div class="result-doc">
+              <div class="doc-content" [innerHTML]="renderMarkdown(aiResult())"></div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+  </div>
+</div>
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\repository\repository.component.scss ===
+:host { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+.repo-layout { display:flex; flex-direction:column; height:100vh; overflow:hidden; background:var(--bg); }
+
+.page-header {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:12px 24px; background:var(--surf); border-bottom:1px solid var(--bord);
+  flex-shrink:0; flex-wrap:wrap;
+}
+.header-left { display:flex; align-items:center; gap:10px; }
+.back-btn {
+  background:none; border:none; cursor:pointer; color:var(--txt-3);
+  padding:6px; border-radius:8px; display:flex; align-items:center; transition:.15s;
+  &:hover { background:var(--surf-2); color:var(--prim); }
+}
+.page-title { font-family:"Playfair Display",serif; font-size:1.05rem; font-weight:600; color:var(--txt); }
+.page-sub { font-size:.7rem; color:var(--txt-3); margin-top:1px; }
+.header-right { display:flex; align-items:center; gap:8px; }
+
+.search-box {
+  display:flex; align-items:center; gap:7px; background:var(--bg); border:1.5px solid var(--bord);
+  border-radius:9px; padding:8px 13px; transition:.2s; min-width:280px;
+  &:focus-within, &.active { border-color:var(--prim-3); background:white; }
+  input { border:none; background:none; font-size:.82rem; font-family:'DM Sans',sans-serif; color:var(--txt); outline:none; flex:1; &::placeholder { color:var(--txt-3); } }
+  button { background:none; border:none; color:var(--txt-3); cursor:pointer; font-size:1rem; }
+  svg { color:var(--txt-3); flex-shrink:0; }
+}
+.btn-search {
+  background:var(--prim); color:white; border:none; border-radius:8px; padding:8px 18px;
+  font-size:.8rem; font-family:'DM Sans',sans-serif; cursor:pointer; transition:.15s; white-space:nowrap;
+  &:hover { background:var(--prim-2); }
+}
+
+.main-content { flex:1; overflow-y:auto; }
+
+/* Home */
+.home-view { padding:20px 24px; }
+.carpetas-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:10px; }
+.carpeta-card {
+  display:flex; align-items:center; gap:14px; background:var(--surf);
+  border:1px solid var(--bord); border-radius:12px; padding:16px 18px;
+  cursor:pointer; text-align:left; transition:.15s; font-family:'DM Sans',sans-serif; width:100%;
+  &:hover { border-color:var(--prim-3); box-shadow:var(--shadow-md); transform:translateY(-1px); }
+}
+.carpeta-icon { font-size:2rem; flex-shrink:0; }
+.carpeta-info { flex:1; }
+.carpeta-nombre { font-size:.9rem; font-weight:500; color:var(--txt); margin-bottom:2px; }
+.carpeta-sub { font-size:.72rem; color:var(--txt-3); margin-bottom:3px; }
+.carpeta-count { font-size:.75rem; color:var(--gold); font-weight:500; }
+.carpeta-arrow { color:var(--txt-3); }
+
+/* Lista */
+.list-view { padding:16px 24px; display:flex; flex-direction:column; gap:12px; }
+.list-header { display:flex; align-items:center; gap:12px; }
+.list-cat-icon { font-size:1.8rem; flex-shrink:0; }
+.list-title { font-family:"Playfair Display",serif; font-size:1rem; font-weight:600; color:var(--txt); }
+.list-sub { font-size:.75rem; color:var(--txt-3); margin-top:2px; }
+
+.loading-state { display:flex; flex-direction:column; align-items:center; gap:12px; padding:48px; }
+.spinner { width:32px; height:32px; border:2px solid var(--bord); border-top-color:var(--prim); border-radius:50%; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.docs-list { display:flex; flex-direction:column; gap:3px; }
+.doc-row {
+  display:flex; align-items:center; gap:10px; background:var(--surf);
+  border:1px solid var(--bord); border-radius:8px; padding:9px 14px;
+  transition:.12s;
+  &:hover { border-color:var(--bord-2); background:var(--surf-2); }
+}
+.doc-row-icon { font-size:1rem; flex-shrink:0; color:var(--txt-3); }
+.doc-row-info { flex:1; min-width:0; }
+.doc-row-nombre { font-size:.82rem; font-weight:400; color:var(--txt); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.doc-row-meta { font-size:.7rem; color:var(--txt-3); margin-top:1px; }
+.doc-row-actions { display:flex; gap:5px; flex-shrink:0; }
+
+.btn-download-sm {
+  display:flex; align-items:center; gap:4px; background:#1a5296; color:white;
+  border:none; border-radius:6px; padding:5px 10px; font-size:.72rem;
+  font-family:'DM Sans',sans-serif; cursor:pointer; transition:.15s; white-space:nowrap;
+  &:hover { background:#0f3a72; }
+}
+.btn-ai-sm {
+  display:flex; align-items:center; gap:4px; background:var(--gold); color:white;
+  border:none; border-radius:6px; padding:5px 10px; font-size:.72rem;
+  font-family:'DM Sans',sans-serif; cursor:pointer; transition:.15s; white-space:nowrap;
+  &:hover { background:#a07820; }
+}
+
+/* Paginacion */
+.pagination { display:flex; align-items:center; gap:4px; padding:12px 0; flex-wrap:wrap; }
+.page-btn {
+  min-width:32px; height:32px; border:1px solid var(--bord); background:var(--surf);
+  border-radius:6px; font-size:.78rem; cursor:pointer; font-family:'DM Sans',sans-serif;
+  color:var(--txt-2); transition:.15s; display:flex; align-items:center; justify-content:center;
+  &:hover:not(:disabled) { border-color:var(--prim-3); color:var(--prim); }
+  &.active { background:var(--prim); border-color:var(--prim); color:white; }
+  &:disabled { opacity:.4; cursor:not-allowed; }
+}
+.page-info { font-size:.72rem; color:var(--txt-3); margin-left:6px; font-family:'DM Mono',monospace; }
+
+/* AI */
+.ai-view { padding:20px 24px; display:flex; flex-direction:column; gap:16px; max-width:800px; }
+.ai-header { display:flex; align-items:center; gap:14px; padding-bottom:14px; border-bottom:1px solid var(--bord); }
+.ai-title { font-family:"Playfair Display",serif; font-size:1rem; font-weight:600; color:var(--txt); }
+.ai-sub { font-size:.75rem; color:var(--txt-3); margin-top:2px; }
+
+.btn-ghost {
+  display:flex; align-items:center; gap:6px; background:none; border:1px solid var(--bord);
+  color:var(--txt-2); font-size:.78rem; padding:6px 12px; border-radius:8px; cursor:pointer;
+  font-family:'DM Sans',sans-serif; transition:.15s; white-space:nowrap;
+  &:hover { background:var(--surf-2); color:var(--txt); }
+}
+
+.ai-form { display:flex; flex-direction:column; gap:10px; }
+.field-label { font-size:.82rem; font-weight:500; color:var(--txt-2); }
+.field-hint { font-size:.75rem; color:var(--txt-3); }
+.ai-textarea {
+  border:1.5px solid var(--bord); border-radius:10px; padding:12px 14px; font-size:.85rem;
+  font-family:'DM Sans',sans-serif; color:var(--txt); resize:vertical; min-height:130px;
+  outline:none; transition:.2s;
+  &:focus { border-color:var(--prim-3); background:white; }
+  &::placeholder { color:var(--txt-3); font-size:.8rem; }
+}
+.btn-generate {
+  display:flex; align-items:center; gap:8px; background:var(--prim); color:white; border:none;
+  border-radius:10px; padding:12px 24px; font-size:.85rem; font-family:'DM Sans',sans-serif;
+  cursor:pointer; transition:.15s; align-self:flex-start;
+  &:hover:not(:disabled) { background:var(--prim-2); }
+  &:disabled { opacity:.5; cursor:not-allowed; }
+}
+.btn-spinner { width:14px; height:14px; border:2px solid rgba(255,255,255,.3); border-top-color:white; border-radius:50%; animation:spin .7s linear infinite; }
+
+.ai-result { display:flex; flex-direction:column; gap:12px; }
+.result-toolbar { display:flex; justify-content:space-between; align-items:center; background:var(--surf); border:1px solid var(--bord); border-radius:10px; padding:10px 14px; }
+.download-btns { display:flex; gap:8px; }
+.btn-dl { display:flex; align-items:center; gap:5px; border:none; border-radius:7px; padding:7px 13px; font-size:.76rem; font-family:'DM Sans',sans-serif; cursor:pointer; transition:.15s; &.word { background:#1a5296; color:white; &:hover { background:#0f3a72; } } &.pdf { background:#c0392b; color:white; &:hover { background:#962d22; } } }
+.result-doc { overflow-y:auto; }
+.doc-content { background:var(--surf); border:1px solid var(--bord); border-radius:8px; padding:32px 40px; font-size:.88rem; line-height:1.7; color:var(--txt); ::ng-deep { h3 { font-family:"Playfair Display",serif; font-size:.95rem; font-weight:600; color:var(--prim); margin:16px 0 6px; border-bottom:1px solid var(--bord); padding-bottom:4px; } strong { color:var(--prim); font-weight:500; } code { font-family:'DM Mono',monospace; font-size:.8em; background:var(--surf-2); padding:1px 5px; border-radius:3px; } ul { padding-left:18px; margin:6px 0; } li { margin:3px 0; } p { margin:6px 0; } } }
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\repository\repository.component.ts ===
+import { Component, inject, signal, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+import { LlmProxyService } from '../../core/services/llm-proxy.service';
+import { DocumentService } from '../../core/services/document.service';
+
+interface Carpeta {
+  nombre: string;
+  categoria: string;
+  icono: string;
+  total: number;
+  subcarpetas: Record<string, number>;
+}
+
+interface Muestra {
+  id: string;
+  nombre: string;
+  carpeta: string;
+  subcarpeta: string;
+  categoria: string;
+  icono: string;
+  ruta_relativa: string;
+  tamanio: number;
+}
+
+interface SearchResponse {
+  total: number;
+  page: number;
+  pages: number;
+  results: Muestra[];
+}
+
+type View = 'home' | 'carpeta' | 'ai-complete';
+
+@Component({
+  selector:    'app-repository',
+  standalone:  true,
+  imports:     [CommonModule, FormsModule],
+  templateUrl: './repository.component.html',
+  styleUrls:   ['./repository.component.scss']
+})
+export class RepositoryComponent implements OnInit {
+  private http   = inject(HttpClient);
+  private llm    = inject(LlmProxyService);
+  private docSvc = inject(DocumentService);
+  private api    = environment.apiUrl + '/api/v1/muestras';
+
+  view              = signal<View>('home');
+  carpetas          = signal<Carpeta[]>([]);
+  selectedCarpeta   = signal<Carpeta | null>(null);
+  results           = signal<Muestra[]>([]);
+  totalResults      = signal(0);
+  totalPages        = signal(0);
+  currentPage       = signal(1);
+  searchQuery       = '';
+  isLoading         = signal(false);
+  isGenerating      = signal(false);
+  selectedMuestra   = signal<Muestra | null>(null);
+  aiInstructions    = '';
+  aiResult          = signal('');
+  stats             = signal<any>(null);
+
+  ngOnInit(): void {
+    this.loadIndex();
+    this.loadStats();
+  }
+
+  loadIndex(): void {
+    this.http.get<any>(this.api + '/index').subscribe({
+      next: data => this.carpetas.set(data.carpetas),
+      error: err => console.error('Error cargando indice:', err)
+    });
+  }
+
+  loadStats(): void {
+    this.http.get<any>(this.api + '/stats').subscribe({
+      next: s => this.stats.set(s),
+      error: () => {}
+    });
+  }
+
+  openCarpeta(carpeta: Carpeta): void {
+    this.selectedCarpeta.set(carpeta);
+    this.searchQuery = '';
+    this.currentPage.set(1);
+    this.view.set('carpeta');
+    this.search();
+  }
+
+  search(page = 1): void {
+    this.isLoading.set(true);
+    this.currentPage.set(page);
+
+    const params: any = { page, limit: 50 };
+    if (this.searchQuery.trim()) params.q = this.searchQuery;
+    if (this.selectedCarpeta()) params.carpeta = this.selectedCarpeta()!.nombre;
+
+    this.http.get<SearchResponse>(this.api + '/search', { params }).subscribe({
+      next: resp => {
+        this.results.set(resp.results);
+        this.totalResults.set(resp.total);
+        this.totalPages.set(resp.pages);
+        this.isLoading.set(false);
+      },
+      error: () => this.isLoading.set(false)
+    });
+  }
+
+  globalSearch(): void {
+    if (!this.searchQuery.trim()) return;
+    this.selectedCarpeta.set(null);
+    this.view.set('carpeta');
+    this.search();
+  }
+
+  onKeydown(e: KeyboardEvent): void {
+    if (e.key === 'Enter') {
+      if (this.view() === 'home') this.globalSearch();
+      else this.search();
+    }
+  }
+
+  downloadOriginal(muestra: Muestra): void {
+    const url = `${this.api}/download?ruta=${encodeURIComponent(muestra.ruta_relativa)}`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = muestra.nombre + '.docx';
+    a.click();
+  }
+
+  openWithAI(muestra: Muestra): void {
+    this.selectedMuestra.set(muestra);
+    this.aiInstructions = '';
+    this.aiResult.set('');
+    this.view.set('ai-complete');
+  }
+
+  async completeWithAI(): Promise<void> {
+    const muestra = this.selectedMuestra();
+    if (!muestra || !this.aiInstructions.trim()) return;
+
+    this.isGenerating.set(true);
+
+    const prompt = `Eres un abogado boliviano experto. Tienes esta muestra de documento legal como referencia:
+
+Nombre del documento: "${muestra.nombre}"
+Categoria: ${muestra.categoria}
+Carpeta: ${muestra.carpeta}
+
+INSTRUCCIONES DEL USUARIO:
+${this.aiInstructions}
+
+TAREA:
+Genera un documento legal boliviano completo basado en el tipo de documento indicado.
+- Usa la estructura tipica de ese tipo de documento en Bolivia
+- Cita los articulos bolivianos correctos y vigentes
+- Completa todos los datos especificos indicados por el usuario
+- El resultado debe ser profesional y listo para usar
+
+Genera el documento completo.`;
+
+    this.llm.chat([{ role: 'user', content: prompt }]).subscribe({
+      next: resp => {
+        this.aiResult.set(resp.content);
+        this.isGenerating.set(false);
+      },
+      error: err => {
+        this.aiResult.set('Error: ' + err.message);
+        this.isGenerating.set(false);
+      }
+    });
+  }
+
+  async downloadAiWord(): Promise<void> {
+    const m = this.selectedMuestra();
+    if (!m || !this.aiResult()) return;
+    await this.docSvc.generateLegalDocument({ titulo: m.nombre, contenido: this.aiResult() });
+  }
+
+  async downloadAiPdf(): Promise<void> {
+    const m = this.selectedMuestra();
+    if (!m || !this.aiResult()) return;
+    await this.docSvc.exportChatToPdf(this.aiResult(), m.nombre);
+  }
+
+  goHome(): void {
+    this.view.set('home');
+    this.selectedCarpeta.set(null);
+    this.selectedMuestra.set(null);
+    this.results.set([]);
+    this.searchQuery = '';
+    this.aiResult.set('');
+  }
+
+  backToCarpeta(): void {
+    this.view.set('carpeta');
+    this.aiResult.set('');
+  }
+
+  renderMarkdown(content: string): string {
+    if (!content) return '';
+    return content
+      .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code>$1</code>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/gs, '<ul>$&</ul>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+  }
+
+  formatSize(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  getPages(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+    const start = Math.max(1, current - 2);
+    const end   = Math.min(total, current + 2);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  }
+}
+
+
+=== C:\proyectos\juris-free\frontend\src\app\features\settings\settings.component.ts ===
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-settings',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:80vh;gap:16px;color:#7a6e5e;font-family:Georgia,serif">
+      <h2 style="color:#1a3a5c">Configuracion</h2>
+      <p>Preferencias, API keys y estadisticas de uso</p>
+      <p style="font-size:.8rem;background:#f0ede8;padding:8px 16px;border-radius:8px">Proximo modulo - en desarrollo</p>
+    </div>
+  `
+})
+export class SettingsComponent {}
+
+

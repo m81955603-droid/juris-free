@@ -81,7 +81,7 @@ interface Cliente {
   <div *ngIf="cargando()" class="loading">Cargando clientes...</div>
 </div>
   `,
-  styles: [`
+  styleUrls: ['./clients.component.scss']
     .clients-container { padding: 2rem; max-width: 1200px; margin: 0 auto; }
     .clients-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
     .clients-header h1 { font-size: 1.8rem; font-weight: 700; }
