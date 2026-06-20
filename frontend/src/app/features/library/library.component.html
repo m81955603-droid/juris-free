@@ -1,181 +1,316 @@
-<div class="lib-layout">
+<div class="lib-root">
 
-  <!-- Header -->
-  <header class="page-header">
-    <div>
-      <h1 class="page-title">Biblioteca Legal Bolivia</h1>
-      <p class="page-sub">
-        @if (stats()) {
-          {{ stats()!.total_normas }} normas · {{ stats()!.total_articulos_indexados }} articulos indexados
-        } @else {
-          CPE 2009 · Códigos · Leyes hasta 2026 · Sentencias TCP · TSJ
-        }
-      </p>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">⚖</span>
+      <span class="logo-text">Biblioteca</span>
     </div>
-    @if (view() === 'detail') {
-      <button class="btn-ghost" (click)="back()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-        </svg>
-        Volver
-      </button>
-    }
-  </header>
 
-  <!-- Busqueda -->
-  @if (view() !== 'detail') {
-    <div class="search-bar">
-      <div class="search-input-wrap">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+    <nav class="sidebar-nav">
+      <button class="nav-item" [class.active]="searchMode() === 'semantica'" (click)="setMode('semantica')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+        </svg>
+        Búsqueda IA
+      </button>
+      <button class="nav-item" [class.active]="searchMode() === 'clasica'" (click)="setMode('clasica')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
-        <input
-          class="search-input"
-          [(ngModel)]="searchQuery"
-          (keydown)="onKeydown($event)"
-          placeholder="Buscar en normativa boliviana... ej: prescripcion, divorcio, despido, amparo">
-      </div>
-      <select class="filter-select" [(ngModel)]="selectedArea">
-        @for (a of areas; track a.valor) {
-          <option [value]="a.valor">{{ a.label }}</option>
-        }
-      </select>
-      <select class="filter-select" [(ngModel)]="selectedTipo">
-        @for (t of tipos; track t.valor) {
-          <option [value]="t.valor">{{ t.label }}</option>
-        }
-      </select>
-      <button class="btn-search" (click)="search()" [disabled]="isSearching() || !searchQuery.trim()">
-        @if (isSearching()) { Buscando... } @else { Buscar }
+        Búsqueda clásica
       </button>
-    </div>
-  }
+    </nav>
 
-  <!-- Contenido principal -->
-  <div class="main-area">
+    <div class="sidebar-divider"></div>
 
-    <!-- Vista de busqueda -->
-    @if (view() === 'search') {
+    <div class="sidebar-section-title">Áreas del derecho</div>
+    <nav class="sidebar-areas">
+      @for (a of areas.slice(1); track a.valor) {
+        <button class="area-item"
+          [class.selected]="selectedArea === a.valor"
+          (click)="selectedArea = (selectedArea === a.valor ? '' : a.valor)">
+          <span class="area-dot" [style.background]="getAreaColor(a.valor)"></span>
+          {{ a.label }}
+          @if (stats() && stats()!.por_area[a.valor]) {
+            <span class="area-count">{{ stats()!.por_area[a.valor] }}</span>
+          }
+        </button>
+      }
+    </nav>
 
-      <!-- Stats cards -->
-      @if (!hasSearched() && stats()) {
-        <div class="stats-section">
-          <div class="stats-grid">
-            @for (area of getObjectKeys(stats()!.por_area); track area) {
-              <div class="stat-card" (click)="selectedArea = area; search()">
-                <span class="stat-icon">{{ getTipoIcon('codigo') }}</span>
-                <div>
-                  <p class="stat-num">{{ stats()!.por_area[area] }}</p>
-                  <p class="stat-label">{{ area | titlecase }}</p>
-                </div>
-              </div>
+    @if (stats()) {
+      <div class="sidebar-stats">
+        <div class="stat-pill">
+          <span class="stat-num">{{ stats()!.total_normas }}</span>
+          <span class="stat-lbl">normas</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-num">{{ stats()!.total_articulos_indexados }}</span>
+          <span class="stat-lbl">artículos</span>
+        </div>
+      </div>
+    }
+  </aside>
+
+  <!-- MAIN PANEL -->
+  <main class="main-panel">
+
+    <!-- HEADER -->
+    <header class="top-bar">
+      @if (view() !== 'home') {
+        <button class="back-btn" (click)="back()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          Volver
+        </button>
+      } @else {
+        <div class="top-breadcrumb">
+          <span>Biblioteca Legal Bolivia</span>
+          <span class="breadcrumb-sep">·</span>
+          <span class="breadcrumb-mode">
+            {{ searchMode() === 'semantica' ? 'Búsqueda semántica con IA' : 'Búsqueda por palabras clave' }}
+          </span>
+        </div>
+      }
+    </header>
+
+    <!-- SEARCH BOX -->
+    @if (view() !== 'detail') {
+      <div class="search-zone">
+        @if (searchMode() === 'semantica') {
+          <div class="mode-badge ia">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+            </svg>
+            Búsqueda semántica — entiende el significado, no solo palabras exactas
+          </div>
+        } @else {
+          <div class="mode-badge clasica">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            Búsqueda por palabras clave — coincidencia exacta de términos
+          </div>
+        }
+
+        <div class="search-row">
+          <div class="search-input-wrap" [class.ia-mode]="searchMode() === 'semantica'">
+            <svg class="search-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input
+              class="search-input"
+              [(ngModel)]="searchQuery"
+              (keydown)="onKeydown($event)"
+              [placeholder]="searchMode() === 'semantica'
+                ? 'Ej: despido injustificado en el embarazo, límites a la propiedad privada...'
+                : 'Ej: prescripción, divorcio, amparo, indemnización...'">
+            @if (searchQuery) {
+              <button class="clear-btn" (click)="searchQuery = ''">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
             }
           </div>
+          <button class="btn-search" (click)="search()" [disabled]="isSearching() || !searchQuery.trim()">
+            @if (isSearching()) {
+              <span class="btn-spinner"></span>
+              Buscando...
+            } @else {
+              Buscar
+            }
+          </button>
+        </div>
+      </div>
+    }
 
-          <div class="normas-section">
-            <h3 class="section-title">Normas disponibles</h3>
-            <div class="normas-list">
-              @for (norma of normas(); track norma.id) {
-                <div class="norma-row" (click)="openNorma(norma.id)">
-                  <span class="norma-icon">{{ getTipoIcon(norma.tipo) }}</span>
-                  <div class="norma-info">
-                    <p class="norma-titulo">{{ norma.titulo }}</p>
-                    <p class="norma-meta">
-                      <span class="area-badge" [style.background]="getAreaColor(norma.area) + '18'" [style.color]="getAreaColor(norma.area)">{{ norma.area }}</span>
-                      · {{ norma.total_articulos }} articulos · {{ norma.fecha | date:'yyyy' }}
-                    </p>
-                  </div>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14" style="color:var(--txt-3);flex-shrink:0">
+    <!-- CONTENT -->
+    <div class="content-area">
+
+      <!-- HOME: normas list -->
+      @if (view() === 'home') {
+        <div class="home-view">
+          <h2 class="section-heading">Normativa disponible</h2>
+          <div class="normas-grid">
+            @for (norma of normas(); track norma.id) {
+              <div class="norma-card" (click)="openNorma(norma.id)">
+                <div class="norma-card-top">
+                  <span class="norma-tipo-icon">{{ getTipoIcon(norma.tipo) }}</span>
+                  <span class="area-chip" [style.background]="getAreaColor(norma.area) + '15'" [style.color]="getAreaColor(norma.area)">
+                    {{ norma.area }}
+                  </span>
+                </div>
+                <h3 class="norma-card-title">{{ norma.titulo }}</h3>
+                <div class="norma-card-footer">
+                  <span class="norma-art-count">{{ norma.total_articulos }} artículos</span>
+                  <span class="norma-fecha">{{ norma.fecha | date:'yyyy' }}</span>
+                  <svg class="arrow-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
                   </svg>
                 </div>
-              }
-            </div>
-          </div>
-        </div>
-      }
-
-      <!-- Resultados de busqueda -->
-      @if (hasSearched()) {
-        <div class="results-section">
-          @if (isSearching()) {
-            <div class="searching-state">
-              <div class="search-spinner"></div>
-              <p>Buscando en normativa boliviana...</p>
-            </div>
-          } @else if (results().length === 0) {
-            <div class="no-results">
-              <p class="no-results-icon">🔍</p>
-              <p>No se encontraron resultados para "<strong>{{ searchQuery }}</strong>"</p>
-              <p class="no-results-hint">Intenta con otros terminos: prescripcion, contrato, despido, amparo, divorcio...</p>
-            </div>
-          } @else {
-            <p class="results-count">{{ results().length }} resultado(s) para "{{ searchQuery }}"</p>
-            <div class="results-list">
-              @for (result of results(); track result.id) {
-                <div class="result-card" (click)="openNorma(result.id)">
-                  <div class="result-header">
-                    <span class="result-icon">{{ getTipoIcon(result.tipo) }}</span>
-                    <div class="result-info">
-                      <h3 class="result-titulo">{{ result.titulo }}</h3>
-                      <div class="result-meta">
-                        <span class="area-badge" [style.background]="getAreaColor(result.area) + '18'" [style.color]="getAreaColor(result.area)">{{ result.area }}</span>
-                        <span class="tipo-badge">{{ result.tipo }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <p class="result-resumen">{{ result.resumen }}</p>
-                  @if (result.articulos_relevantes.length > 0) {
-                    <div class="articulos-preview">
-                      <p class="articulos-label">Articulos relevantes:</p>
-                      @for (art of result.articulos_relevantes; track art.numero) {
-                        <div class="articulo-chip">
-                          <strong>Art. {{ art.numero }}</strong> — {{ art.texto.substring(0, 120) }}...
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-          }
-        </div>
-      }
-    }
-
-    <!-- Detalle de norma -->
-    @if (view() === 'detail' && selectedNorma()) {
-      <div class="detail-section">
-        <div class="detail-header">
-          <span class="detail-icon">{{ getTipoIcon(selectedNorma().tipo) }}</span>
-          <div>
-            <h2 class="detail-titulo">{{ selectedNorma().titulo }}</h2>
-            <div class="detail-meta">
-              <span class="area-badge" [style.background]="getAreaColor(selectedNorma().area) + '18'" [style.color]="getAreaColor(selectedNorma().area)">{{ selectedNorma().area }}</span>
-              <span>{{ selectedNorma().fecha | date:'dd/MM/yyyy' }}</span>
-              <span>{{ selectedNorma().fuente }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="detail-resumen">
-          <h3>Descripcion</h3>
-          <p>{{ selectedNorma().resumen }}</p>
-        </div>
-
-        <div class="detail-articulos">
-          <h3>Articulos indexados</h3>
-          <div class="articulos-list">
-            @for (art of selectedNorma().articulos; track art.num) {
-              <div class="articulo-card">
-                <div class="articulo-num">Art. {{ art.num }}</div>
-                <p class="articulo-texto">{{ art.texto }}</p>
               </div>
             }
           </div>
         </div>
-      </div>
-    }
+      }
 
-  </div>
+      <!-- SEARCH RESULTS -->
+      @if (view() === 'search') {
+        <div class="results-view">
+
+          @if (isSearching()) {
+            <div class="loading-state">
+              <div class="loading-ring"></div>
+              <p>{{ searchMode() === 'semantica' ? 'Analizando significado con IA...' : 'Buscando en normativa boliviana...' }}</p>
+            </div>
+          }
+
+          <!-- Resultados semanticos -->
+          @if (!isSearching() && searchMode() === 'semantica') {
+            @if (semanticResults().length === 0) {
+              <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <h3>Sin resultados</h3>
+                <p>No se encontraron artículos relacionados con "<strong>{{ searchQuery }}</strong>"</p>
+                <p class="empty-hint">Prueba con términos más generales: despido, propiedad, contrato, libertad...</p>
+              </div>
+            } @else {
+              <div class="results-header">
+                <p class="results-count">
+                  <strong>{{ semanticResults().length }}</strong> artículos relevantes para
+                  "<em>{{ searchQuery }}</em>"
+                </p>
+                <span class="ia-tag">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+                  </svg>
+                  ordenados por relevancia semántica
+                </span>
+              </div>
+              <div class="semantic-list">
+                @for (r of semanticResults(); track $index) {
+                  <div class="semantic-card">
+                    <div class="sem-card-left">
+                      <div class="sim-bar-wrap">
+                        <div class="sim-bar" [style.height.%]="r.similitud * 100" [class]="getSimilitudClass(r.similitud)"></div>
+                      </div>
+                      <span class="sim-pct">{{ (r.similitud * 100).toFixed(0) }}%</span>
+                    </div>
+                    <div class="sem-card-body">
+                      <div class="sem-card-top">
+                        <span class="sem-norma">{{ r.norma_titulo }}</span>
+                        <span class="sem-art-badge">Art. {{ r.articulo }}</span>
+                      </div>
+                      <p class="sem-texto">{{ r.texto }}</p>
+                      <div class="sem-card-footer">
+                        @if (r.area) {
+                          <span class="area-chip sm" [style.background]="getAreaColor(r.area) + '15'" [style.color]="getAreaColor(r.area)">
+                            {{ r.area }}
+                          </span>
+                        }
+                        <span class="sim-label" [class]="getSimilitudClass(r.similitud)">
+                          {{ getSimilitudLabel(r.similitud) }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          }
+
+          <!-- Resultados clasicos -->
+          @if (!isSearching() && searchMode() === 'clasica') {
+            @if (results().length === 0) {
+              <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <h3>Sin resultados</h3>
+                <p>No se encontraron normas con "<strong>{{ searchQuery }}</strong>"</p>
+              </div>
+            } @else {
+              <div class="results-header">
+                <p class="results-count"><strong>{{ results().length }}</strong> norma(s) encontrada(s)</p>
+              </div>
+              <div class="classic-list">
+                @for (r of results(); track r.id) {
+                  <div class="classic-card" (click)="openNorma(r.id)">
+                    <div class="classic-icon">{{ getTipoIcon(r.tipo) }}</div>
+                    <div class="classic-body">
+                      <h3 class="classic-title">{{ r.titulo }}</h3>
+                      <p class="classic-resumen">{{ r.resumen }}</p>
+                      @if (r.articulos_relevantes.length > 0) {
+                        <div class="arts-preview">
+                          @for (art of r.articulos_relevantes.slice(0, 2); track art.numero) {
+                            <div class="art-preview-item">
+                              <strong>Art. {{ art.numero }}</strong> — {{ art.texto.substring(0, 100) }}...
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                    <div class="classic-right">
+                      <span class="area-chip" [style.background]="getAreaColor(r.area) + '15'" [style.color]="getAreaColor(r.area)">{{ r.area }}</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--txt-3)">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                      </svg>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          }
+
+        </div>
+      }
+
+      <!-- DETALLE DE NORMA -->
+      @if (view() === 'detail' && selectedNorma()) {
+        <div class="detail-view">
+          <div class="detail-hero">
+            <div class="detail-icon-wrap">{{ getTipoIcon(selectedNorma().tipo) }}</div>
+            <div>
+              <h2 class="detail-title">{{ selectedNorma().titulo }}</h2>
+              <div class="detail-chips">
+                <span class="area-chip" [style.background]="getAreaColor(selectedNorma().area) + '15'" [style.color]="getAreaColor(selectedNorma().area)">
+                  {{ selectedNorma().area }}
+                </span>
+                <span class="chip-neutral">{{ selectedNorma().tipo }}</span>
+                <span class="chip-neutral">{{ selectedNorma().fecha | date:'dd/MM/yyyy' }}</span>
+                @if (selectedNorma().fuente) {
+                  <span class="chip-neutral">{{ selectedNorma().fuente }}</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          @if (selectedNorma().resumen) {
+            <div class="detail-resumen">
+              <h3 class="detail-section-title">Descripción</h3>
+              <p>{{ selectedNorma().resumen }}</p>
+            </div>
+          }
+
+          <div class="detail-articulos">
+            <h3 class="detail-section-title">
+              Artículos indexados
+              <span class="art-total-badge">{{ selectedNorma().articulos?.length || 0 }}</span>
+            </h3>
+            <div class="articulos-list">
+              @for (art of selectedNorma().articulos; track art.num) {
+                <div class="articulo-item">
+                  <div class="art-num-badge">Art. {{ art.num }}</div>
+                  <p class="art-texto">{{ art.texto }}</p>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+    </div>
+  </main>
+
 </div>

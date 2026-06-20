@@ -14,6 +14,15 @@ interface SearchResult {
   score: number;
 }
 
+interface SemanticResult {
+  norma_titulo: string;
+  articulo: string;
+  texto: string;
+  area: string | null;
+  tipo: string | null;
+  similitud: number;
+}
+
 interface Norma {
   id: string;
   tipo: string;
@@ -42,34 +51,45 @@ export class LibraryComponent implements OnInit {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl + '/api/v1/library';
 
-  searchQuery    = '';
-  selectedArea   = '';
-  selectedTipo   = '';
-  isSearching    = signal(false);
-  results        = signal<SearchResult[]>([]);
-  normas         = signal<Norma[]>([]);
-  stats          = signal<LibStats | null>(null);
-  selectedNorma  = signal<any>(null);
-  view           = signal<'search' | 'browse' | 'detail'>('search');
-  hasSearched    = signal(false);
+  searchQuery      = '';
+  selectedArea     = '';
+  selectedTipo     = '';
+  searchMode       = signal<'semantica' | 'clasica'>('semantica');
+  isSearching      = signal(false);
+  results          = signal<SearchResult[]>([]);
+  semanticResults  = signal<SemanticResult[]>([]);
+  normas           = signal<Norma[]>([]);
+  stats            = signal<LibStats | null>(null);
+  selectedNorma    = signal<any>(null);
+  view             = signal<'home' | 'search' | 'detail'>('home');
+  hasSearched      = signal(false);
 
   readonly areas = [
-    { valor: '',               label: 'Todas las areas' },
-    { valor: 'civil',          label: 'Derecho Civil' },
-    { valor: 'penal',          label: 'Derecho Penal' },
-    { valor: 'laboral',        label: 'Derecho Laboral' },
-    { valor: 'constitucional', label: 'Derecho Constitucional' },
-    { valor: 'familiar',       label: 'Derecho Familiar' },
-    { valor: 'administrativo', label: 'Derecho Administrativo' }
+    { valor: '',               label: 'Todas las áreas' },
+    { valor: 'civil',          label: 'Civil' },
+    { valor: 'penal',          label: 'Penal' },
+    { valor: 'laboral',        label: 'Laboral' },
+    { valor: 'constitucional', label: 'Constitucional' },
+    { valor: 'familiar',       label: 'Familiar' },
+    { valor: 'administrativo', label: 'Administrativo' }
   ];
 
   readonly tipos = [
     { valor: '',             label: 'Todos los tipos' },
-    { valor: 'constitucion', label: 'Constitucion' },
-    { valor: 'codigo',       label: 'Codigo' },
+    { valor: 'constitucion', label: 'Constitución' },
+    { valor: 'codigo',       label: 'Código' },
     { valor: 'ley',          label: 'Ley' },
     { valor: 'sentencia',    label: 'Sentencia' }
   ];
+
+  readonly areaColors: Record<string, string> = {
+    'civil':          '#1a5296',
+    'penal':          '#c0392b',
+    'laboral':        '#1a6b3c',
+    'constitucional': '#6c3483',
+    'familiar':       '#c4922a',
+    'administrativo': '#2e86ab'
+  };
 
   ngOnInit(): void {
     this.loadStats();
@@ -94,15 +114,32 @@ export class LibraryComponent implements OnInit {
     if (!this.searchQuery.trim()) return;
     this.isSearching.set(true);
     this.hasSearched.set(true);
+    this.view.set('search');
 
-    const params: any = { q: this.searchQuery };
-    if (this.selectedArea) params.area = this.selectedArea;
-    if (this.selectedTipo) params.tipo = this.selectedTipo;
+    if (this.searchMode() === 'semantica') {
+      const params: any = { q: this.searchQuery, limit: 8 };
+      if (this.selectedArea) params.area = this.selectedArea;
+      this.http.get<SemanticResult[]>(this.apiUrl + '/search-semantic', { params }).subscribe({
+        next: r => { this.semanticResults.set(r); this.isSearching.set(false); },
+        error: () => { this.isSearching.set(false); }
+      });
+    } else {
+      const params: any = { q: this.searchQuery };
+      if (this.selectedArea) params.area = this.selectedArea;
+      if (this.selectedTipo) params.tipo = this.selectedTipo;
+      this.http.get<SearchResult[]>(this.apiUrl + '/search', { params }).subscribe({
+        next: r => { this.results.set(r); this.isSearching.set(false); },
+        error: () => { this.isSearching.set(false); }
+      });
+    }
+  }
 
-    this.http.get<SearchResult[]>(this.apiUrl + '/search', { params }).subscribe({
-      next: r => { this.results.set(r); this.isSearching.set(false); this.view.set('search'); },
-      error: () => { this.isSearching.set(false); }
-    });
+  setMode(mode: 'semantica' | 'clasica'): void {
+    this.searchMode.set(mode);
+    this.hasSearched.set(false);
+    this.results.set([]);
+    this.semanticResults.set([]);
+    this.searchQuery = '';
   }
 
   openNorma(id: string): void {
@@ -117,15 +154,11 @@ export class LibraryComponent implements OnInit {
   }
 
   getAreaColor(area: string): string {
-    const colors: Record<string, string> = {
-      'civil':          '#1a5296',
-      'penal':          '#c0392b',
-      'laboral':        '#1a6b3c',
-      'constitucional': '#6c3483',
-      'familiar':       '#c4922a',
-      'administrativo': '#2e86ab'
-    };
-    return colors[area] || '#7a7268';
+    return this.areaColors[area] || '#7a7268';
+  }
+
+  getAreaLabel(area: string): string {
+    return this.areas.find(a => a.valor === area)?.label || area;
   }
 
   getTipoIcon(tipo: string): string {
@@ -139,12 +172,37 @@ export class LibraryComponent implements OnInit {
     return icons[tipo] || '📄';
   }
 
+  getSimilitudLabel(s: number): string {
+    if (s >= 0.75) return 'Alta relevancia';
+    if (s >= 0.55) return 'Relevante';
+    return 'Relacionado';
+  }
+
+  getSimilitudClass(s: number): string {
+    if (s >= 0.75) return 'sim-alta';
+    if (s >= 0.55) return 'sim-media';
+    return 'sim-baja';
+  }
+
   getObjectKeys(obj: Record<string, number>): string[] {
     return obj ? Object.keys(obj) : [];
   }
 
-  back(): void {
-    this.view.set('search');
+  goHome(): void {
+    this.view.set('home');
+    this.hasSearched.set(false);
     this.selectedNorma.set(null);
+    this.results.set([]);
+    this.semanticResults.set([]);
+    this.searchQuery = '';
+  }
+
+  back(): void {
+    if (this.view() === 'detail') {
+      this.view.set(this.hasSearched() ? 'search' : 'home');
+      this.selectedNorma.set(null);
+    } else {
+      this.goHome();
+    }
   }
 }
