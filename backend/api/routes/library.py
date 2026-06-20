@@ -217,26 +217,27 @@ async def get_stats():
     }
 
 # ─────────────────────────────────────────────────────────────
-# BUSQUEDA SEMANTICA — Gemini text-embedding-004 + pgvector
+# BUSQUEDA SEMANTICA — Gemini gemini-embedding-2 + pgvector
 # ─────────────────────────────────────────────────────────────
 
+from fastapi import HTTPException as _HTTPException
 import httpx as _httpx
 from pydantic import BaseModel as _BaseModel
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY", "")
-GEMINI_KEY   = os.getenv("GEMINI_API_KEY", "")
+_SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+_SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY", "")
+_GEMINI_KEY   = os.getenv("GEMINI_API_KEY", "")
 
-GEMINI_EMBED_URL = (
+_GEMINI_EMBED_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
-    "text-embedding-004:embedContent?key="
+    "gemini-embedding-2:embedContent?key="
 )
 
 
 def _sb_headers():
     return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "apikey": _SUPABASE_KEY,
+        "Authorization": f"Bearer {_SUPABASE_KEY}",
         "Content-Type": "application/json",
     }
 
@@ -257,22 +258,21 @@ async def search_semantic(
     limit: int = Query(8, le=20),
 ):
     """Busqueda semantica sobre articulos legales usando Gemini embeddings + pgvector."""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        raise HTTPException(503, "Supabase no configurado")
-    if not GEMINI_KEY:
-        raise HTTPException(503, "GEMINI_API_KEY no configurado")
+    if not _SUPABASE_URL or not _SUPABASE_KEY:
+        raise _HTTPException(status_code=503, detail="Supabase no configurado")
+    if not _GEMINI_KEY:
+        raise _HTTPException(status_code=503, detail="GEMINI_API_KEY no configurado")
 
     # 1. Generar embedding de la query con Gemini
-    embed_url = GEMINI_EMBED_URL + GEMINI_KEY
     embed_payload = {
-        "model": "models/text-embedding-004",
+        "model": "models/gemini-embedding-2",
         "content": {"parts": [{"text": q}]},
         "taskType": "RETRIEVAL_QUERY",
     }
     async with _httpx.AsyncClient(timeout=20) as client:
-        r = await client.post(embed_url, json=embed_payload)
+        r = await client.post(_GEMINI_EMBED_URL + _GEMINI_KEY, json=embed_payload)
         if r.status_code != 200:
-            raise HTTPException(502, f"Error Gemini embeddings: {r.text}")
+            raise _HTTPException(status_code=502, detail=f"Error Gemini: {r.text}")
         embedding = r.json()["embedding"]["values"]
         embedding = embedding[:1536]
 
@@ -285,16 +285,15 @@ async def search_semantic(
     }
     async with _httpx.AsyncClient(timeout=20) as client:
         r = await client.post(
-            f"{SUPABASE_URL}/rest/v1/rpc/match_legal_documents",
+            f"{_SUPABASE_URL}/rest/v1/rpc/match_legal_documents",
             json=rpc_payload,
             headers=_sb_headers(),
         )
         if r.status_code != 200:
-            raise HTTPException(502, f"Error Supabase RPC: {r.text}")
+            raise _HTTPException(status_code=502, detail=f"Error Supabase: {r.text}")
 
-    rows = r.json()
     results = []
-    for row in rows:
+    for row in r.json():
         title = row.get("title", "")
         norma_titulo, _, articulo = title.partition(" — Art. ")
         results.append(SemanticResult(
