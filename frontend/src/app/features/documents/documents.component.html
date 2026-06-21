@@ -3,11 +3,11 @@
   <header class="page-header">
     <div>
       <h1 class="page-title">Generador de Documentos</h1>
-      <p class="page-sub">Documentos legales bolivianos profesionales en Word y PDF</p>
+      <p class="page-sub">Documentos legales bolivianos con revisión automática de IA</p>
     </div>
     @if (step() !== 'select') {
       <button class="btn-ghost" (click)="backToTemplates()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
           <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
         </svg>
         Volver
@@ -17,19 +17,27 @@
 
   <!-- PASO 1: Seleccion de plantilla -->
   @if (step() === 'select') {
-    <div class="templates-grid">
-      @for (t of templates; track t.id) {
-        <button class="template-card" (click)="selectTemplate(t)">
-          <span class="tmpl-icon">{{ t.icon }}</span>
-          <div class="tmpl-info">
-            <h3 class="tmpl-name">{{ t.nombre }}</h3>
-            <p class="tmpl-desc">{{ t.descripcion }}</p>
-          </div>
-          <svg class="tmpl-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-          </svg>
-        </button>
-      }
+    <div class="templates-section">
+      <div class="critic-banner">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+        </svg>
+        <span>Critic-Loop activo — cada documento pasa por generación → revisión → corrección automática</span>
+      </div>
+      <div class="templates-grid">
+        @for (t of templates; track t.id) {
+          <button class="template-card" (click)="selectTemplate(t)">
+            <span class="tmpl-icon">{{ t.icon }}</span>
+            <div class="tmpl-info">
+              <h3 class="tmpl-name">{{ t.nombre }}</h3>
+              <p class="tmpl-desc">{{ t.descripcion }}</p>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14" style="color:var(--txt-3);flex-shrink:0">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        }
+      </div>
     </div>
   }
 
@@ -40,7 +48,7 @@
         <span class="form-icon">{{ selectedTemplate()?.icon }}</span>
         <div>
           <h2 class="form-title">{{ selectedTemplate()?.nombre }}</h2>
-          <p class="form-sub">Completa los datos para generar el documento</p>
+          <p class="form-sub">Completa los datos — la IA generará y revisará el documento automáticamente</p>
         </div>
       </div>
 
@@ -51,7 +59,6 @@
               {{ campo.label }}
               @if (campo.requerido) { <span class="required">*</span> }
             </label>
-
             @if (campo.tipo === 'textarea') {
               <textarea class="field-input field-textarea" [(ngModel)]="formData[campo.id]" [placeholder]="campo.placeholder || ''" rows="3"></textarea>
             } @else if (campo.tipo === 'select') {
@@ -76,7 +83,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
               <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
-            Generar documento con IA
+            Generar con Critic-Loop IA
           }
         </button>
       </div>
@@ -88,30 +95,72 @@
     <div class="preview-container">
       <div class="preview-toolbar">
         <button class="btn-ghost" (click)="backToForm()">Editar datos</button>
-        <div class="download-btns">
+        <div class="toolbar-right">
+          @if (criticResult()) {
+            <div class="critic-badge" [class]="getRiesgoClass()">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              {{ getRiesgoLabel() }}
+              @if (criticResult()!.corregido) { · Corregido }
+              · {{ criticResult()!.iteraciones }} iteraciones
+            </div>
+          }
           @if (!isGenerating() && generatedContent()) {
             <button class="btn-download word" (click)="downloadWord()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
               </svg>
-              Descargar Word
+              Word
             </button>
             <button class="btn-download pdf" (click)="downloadPdf()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="15" height="15">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
               </svg>
-              Descargar PDF
+              PDF
             </button>
           }
         </div>
       </div>
 
+      <!-- Problemas detectados -->
+      @if (criticResult() && criticResult()!.problemas.length > 0) {
+        <div class="critic-panel" [class]="getRiesgoClass()">
+          <div class="critic-panel-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z"/>
+            </svg>
+            <span>{{ criticResult()!.problemas.length }} observaciones detectadas y {{ criticResult()!.corregido ? 'corregidas' : 'revisadas' }}</span>
+            <span class="riesgo-num">Riesgo: {{ criticResult()!.puntaje_riesgo }}%</span>
+          </div>
+          <ul class="critic-list">
+            @for (p of criticResult()!.problemas; track p) {
+              <li>{{ p }}</li>
+            }
+          </ul>
+        </div>
+      }
+
       <div class="preview-doc">
         @if (isGenerating()) {
           <div class="generating-state">
+            <div class="gen-steps">
+              <div class="gen-step" [class.active]="genPhase() === 'borrador'" [class.done]="genPhase() !== 'borrador'">
+                <div class="gen-dot"></div>
+                <span>Generando borrador</span>
+              </div>
+              <div class="gen-step" [class.active]="genPhase() === 'revisando'">
+                <div class="gen-dot"></div>
+                <span>Revisando con abogado senior</span>
+              </div>
+              <div class="gen-step" [class.active]="genPhase() === 'corrigiendo'">
+                <div class="gen-dot"></div>
+                <span>Corrigiendo observaciones</span>
+              </div>
+            </div>
             <div class="gen-spinner"></div>
-            <p>Generando documento con IA...</p>
-            <p class="gen-sub">Redactando con normativa boliviana vigente</p>
+            <p class="gen-label">{{ getPhaseLabel() }}</p>
+            <p class="gen-sub">El Critic-Loop garantiza un documento jurídicamente blindado</p>
           </div>
         } @else {
           <div class="doc-content" [innerHTML]="renderMarkdown(generatedContent())"></div>
