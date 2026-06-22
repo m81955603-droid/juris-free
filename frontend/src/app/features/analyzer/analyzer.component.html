@@ -1,16 +1,22 @@
 <div class="analyzer-layout">
   <header class="page-header">
     <div>
-      <h1 class="page-title">Analisis de Documentos</h1>
-      <p class="page-sub">Sube PDF o Word - la IA analiza, resume y responde tus preguntas</p>
+      <h1 class="page-title">Análisis de Documentos</h1>
+      <p class="page-sub">Sube PDF o Word · La IA extrae, estructura y responde tus preguntas</p>
     </div>
     @if (step() === "ready") {
-      <button class="btn-ghost" (click)="resetUpload()">Analizar otro</button>
+      <button class="btn-ghost" (click)="resetUpload()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m-8-8h16"/>
+        </svg>
+        Analizar otro
+      </button>
     }
   </header>
 
   <div class="main-content">
 
+    <!-- ── UPLOAD ── -->
     @if (step() === "upload") {
       <div class="upload-view">
         <div class="drop-zone" [class.drag-over]="dragOver()"
@@ -23,23 +29,36 @@
               <span class="file-icon word">DOC</span>
               <span class="file-icon txt">TXT</span>
             </div>
-            <h3>Arrastra tu documento aqui</h3>
+            <h3>Arrastra tu documento aquí</h3>
             <p>o haz clic para seleccionar</p>
-            <p class="drop-hint">PDF · Word (.docx) · Texto (.txt) · Maximo 20MB</p>
+            <p class="drop-hint">PDF · Word (.docx) · Texto (.txt) · Máximo 20MB</p>
           </div>
         </div>
         <div class="upload-features">
-          <h4>Que puede analizar la IA?</h4>
+          <h4>¿Qué puede analizar la IA?</h4>
           <div class="features-grid">
-            <div class="feature-item"><span class="feat-icon">📋</span><div><p class="feat-title">Contratos</p><p class="feat-desc">Obligaciones, riesgos, clausulas, plazos</p></div></div>
-            <div class="feature-item"><span class="feat-icon">⚖</span><div><p class="feat-title">Demandas</p><p class="feat-desc">Petitorio, fundamentos, articulos citados</p></div></div>
-            <div class="feature-item"><span class="feat-icon">🏛</span><div><p class="feat-title">Sentencias</p><p class="feat-desc">Fallo, argumentos, apelabilidad</p></div></div>
-            <div class="feature-item"><span class="feat-icon">📜</span><div><p class="feat-title">Poderes</p><p class="feat-desc">Facultades, vigencia, limitaciones</p></div></div>
+            <div class="feature-item">
+              <span class="feat-icon">📋</span>
+              <div><p class="feat-title">Contratos</p><p class="feat-desc">Obligaciones, riesgos, cláusulas, plazos</p></div>
+            </div>
+            <div class="feature-item">
+              <span class="feat-icon">⚖</span>
+              <div><p class="feat-title">Demandas</p><p class="feat-desc">Petitorio, fundamentos, artículos citados</p></div>
+            </div>
+            <div class="feature-item">
+              <span class="feat-icon">🏛</span>
+              <div><p class="feat-title">Sentencias</p><p class="feat-desc">Fallo, argumentos, apelabilidad</p></div>
+            </div>
+            <div class="feature-item">
+              <span class="feat-icon">📜</span>
+              <div><p class="feat-title">Poderes</p><p class="feat-desc">Facultades, vigencia, limitaciones</p></div>
+            </div>
           </div>
         </div>
       </div>
     }
 
+    <!-- ── ANALYZING ── -->
     @if (step() === "analyzing") {
       <div class="analyzing-view">
         <div class="file-card">
@@ -52,14 +71,16 @@
         <div class="progress-steps">
           <div class="prog-step done"><span class="prog-dot"></span><span>Archivo cargado</span></div>
           <div class="prog-step active"><span class="prog-dot spinning"></span><span>Analizando con IA...</span></div>
-          <div class="prog-step"><span class="prog-dot"></span><span>Preparando resumen</span></div>
+          <div class="prog-step"><span class="prog-dot"></span><span>Estructurando resultados</span></div>
         </div>
         <p class="analyzing-hint">Esto puede tomar 10-20 segundos</p>
       </div>
     }
 
+    <!-- ── READY ── -->
     @if (step() === "ready") {
       <div class="result-view">
+
         <div class="file-info-bar">
           <span class="file-badge">{{ fileType() === ".pdf" ? "PDF" : "Word" }}</span>
           <span class="file-name">{{ fileName() }}</span>
@@ -70,66 +91,157 @@
         </div>
 
         <div class="tabs">
-          <button class="tab" [class.active]="activeTab() === 'resumen'" (click)="activeTab.set('resumen')">Resumen</button>
-          <button class="tab" [class.active]="activeTab() === 'chat'"    (click)="activeTab.set('chat')">Preguntas</button>
-          <button class="tab" [class.active]="activeTab() === 'export'"  (click)="activeTab.set('export')">Exportar</button>
+          <button class="tab" [class.active]="activeTab() === 'resumen'" (click)="activeTab.set('resumen')">
+            Dashboard
+          </button>
+          <button class="tab" [class.active]="activeTab() === 'chat'" (click)="activeTab.set('chat')">
+            Preguntas
+          </button>
+          <button class="tab" [class.active]="activeTab() === 'export'" (click)="activeTab.set('export')">
+            Exportar
+          </button>
         </div>
 
+        <!-- ── DASHBOARD TAB ── -->
         @if (activeTab() === "resumen" && analysis()) {
-          <div class="resumen-view">
-            <div class="resumen-card main">
-              <h3>Resumen ejecutivo</h3>
-              <p>{{ analysis()!.resumen }}</p>
+          <div class="dashboard-view">
+
+            <!-- Resumen ejecutivo -->
+            <div class="dash-card dash-resumen">
+              <div class="dash-card-header">
+                <span class="dash-icon">📋</span>
+                <h3>Resumen ejecutivo</h3>
+              </div>
+              <p class="dash-resumen-text">{{ analysis()!.resumen }}</p>
             </div>
-            <div class="resumen-grid">
+
+            <!-- Grid de tarjetas de datos -->
+            <div class="dash-grid">
+
+              <!-- Partes -->
               @if (analysis()!.partes.length > 0) {
-                <div class="resumen-card">
-                  <h4>Partes</h4>
-                  <ul>@for (p of analysis()!.partes; track p) { <li>{{ p }}</li> }</ul>
+                <div class="dash-card">
+                  <div class="dash-card-header">
+                    <span class="dash-icon">👤</span>
+                    <h4>Partes involucradas</h4>
+                    <span class="dash-count">{{ analysis()!.partes.length }}</span>
+                  </div>
+                  <ul class="dash-list">
+                    @for (p of analysis()!.partes; track p) {
+                      <li class="dash-item">
+                        <span class="dash-item-dot blue"></span>
+                        {{ p }}
+                      </li>
+                    }
+                  </ul>
                 </div>
               }
+
+              <!-- Fechas -->
               @if (analysis()!.fechas.length > 0) {
-                <div class="resumen-card">
-                  <h4>Fechas importantes</h4>
-                  <ul>@for (f of analysis()!.fechas; track f) { <li>{{ f }}</li> }</ul>
+                <div class="dash-card">
+                  <div class="dash-card-header">
+                    <span class="dash-icon">📅</span>
+                    <h4>Fechas importantes</h4>
+                    <span class="dash-count">{{ analysis()!.fechas.length }}</span>
+                  </div>
+                  <ul class="dash-list">
+                    @for (f of analysis()!.fechas; track f) {
+                      <li class="dash-item">
+                        <span class="dash-item-dot gold"></span>
+                        {{ f }}
+                      </li>
+                    }
+                  </ul>
                 </div>
               }
+
+              <!-- Montos -->
               @if (analysis()!.montos.length > 0) {
-                <div class="resumen-card">
-                  <h4>Montos</h4>
-                  <ul>@for (m of analysis()!.montos; track m) { <li>{{ m }}</li> }</ul>
+                <div class="dash-card">
+                  <div class="dash-card-header">
+                    <span class="dash-icon">💰</span>
+                    <h4>Montos y valores</h4>
+                    <span class="dash-count">{{ analysis()!.montos.length }}</span>
+                  </div>
+                  <ul class="dash-list">
+                    @for (m of analysis()!.montos; track m) {
+                      <li class="dash-item">
+                        <span class="dash-item-dot green"></span>
+                        {{ m }}
+                      </li>
+                    }
+                  </ul>
                 </div>
               }
+
+              <!-- Artículos legales -->
               @if (analysis()!.articulos.length > 0) {
-                <div class="resumen-card">
-                  <h4>Articulos citados</h4>
-                  <ul>@for (art of analysis()!.articulos; track art) { <li>{{ art }}</li> }</ul>
+                <div class="dash-card">
+                  <div class="dash-card-header">
+                    <span class="dash-icon">⚖</span>
+                    <h4>Artículos citados</h4>
+                    <span class="dash-count">{{ analysis()!.articulos.length }}</span>
+                  </div>
+                  <ul class="dash-list">
+                    @for (art of analysis()!.articulos; track art) {
+                      <li class="dash-item art-item">
+                        <span class="art-badge">ART</span>
+                        {{ art }}
+                      </li>
+                    }
+                  </ul>
                 </div>
               }
+
             </div>
+
+            <!-- Riesgos -->
             @if (analysis()!.riesgos.length > 0) {
-              <div class="resumen-card riesgos">
-                <h4>Puntos de atencion</h4>
-                <ul>@for (r of analysis()!.riesgos; track r) { <li>{{ r }}</li> }</ul>
+              <div class="dash-card dash-riesgos">
+                <div class="dash-card-header">
+                  <span class="dash-icon">⚠</span>
+                  <h4>Puntos de atención</h4>
+                  <span class="dash-count red">{{ analysis()!.riesgos.length }}</span>
+                </div>
+                <ul class="dash-list">
+                  @for (r of analysis()!.riesgos; track r) {
+                    <li class="dash-item riesgo-item">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z"/>
+                      </svg>
+                      {{ r }}
+                    </li>
+                  }
+                </ul>
               </div>
             }
+
+            <!-- Recomendación -->
             @if (analysis()!.siguiente) {
-              <div class="resumen-card siguiente">
-                <h4>Recomendacion</h4>
-                <p>{{ analysis()!.siguiente }}</p>
+              <div class="dash-card dash-siguiente">
+                <div class="dash-card-header">
+                  <span class="dash-icon">✅</span>
+                  <h4>Recomendación</h4>
+                </div>
+                <p class="dash-siguiente-text">{{ analysis()!.siguiente }}</p>
               </div>
             }
-            <div class="sugeridas">
-              <p class="sugeridas-title">Preguntas frecuentes:</p>
+
+            <!-- Preguntas sugeridas -->
+            <div class="sugeridas-section">
+              <p class="sugeridas-title">Preguntas frecuentes sobre este documento</p>
               <div class="sugeridas-grid">
                 @for (q of getSugeridas(); track q) {
                   <button class="sugerida-btn" (click)="askQuestion(q)">{{ q }}</button>
                 }
               </div>
             </div>
+
           </div>
         }
 
+        <!-- ── CHAT TAB ── -->
         @if (activeTab() === "chat") {
           <div class="chat-view">
             <div class="chat-messages">
@@ -170,17 +282,28 @@
           </div>
         }
 
+        <!-- ── EXPORT TAB ── -->
         @if (activeTab() === "export") {
           <div class="export-view">
             <div class="export-card" (click)="exportAnalysis()">
               <span class="export-icon">📊</span>
-              <div><h3>Exportar analisis completo</h3><p>Word con resumen, partes, fechas y riesgos</p></div>
-              <span>→</span>
+              <div>
+                <h3>Exportar análisis completo</h3>
+                <p>Word con resumen, partes, fechas, artículos y riesgos</p>
+              </div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16" style="color:var(--txt-3);flex-shrink:0">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+              </svg>
             </div>
             <div class="export-card" (click)="exportChat()">
               <span class="export-icon">💬</span>
-              <div><h3>Exportar preguntas y respuestas</h3><p>Word con todas las consultas realizadas</p></div>
-              <span>→</span>
+              <div>
+                <h3>Exportar preguntas y respuestas</h3>
+                <p>Word con todas las consultas realizadas sobre el documento</p>
+              </div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16" style="color:var(--txt-3);flex-shrink:0">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+              </svg>
             </div>
           </div>
         }
