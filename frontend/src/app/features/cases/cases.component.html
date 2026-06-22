@@ -4,12 +4,12 @@
   <ng-container *ngIf="vista() === 'lista'">
     <div class="toolbar">
       <div class="toolbar-l">
-        <h1>⚖️ Gestión de Casos</h1>
+        <h1>Gestión de Casos</h1>
         <span class="chip-total">{{ casos().length }}</span>
       </div>
       <div class="toolbar-r">
         <input [(ngModel)]="busqueda" (input)="cargar()"
-               placeholder="🔍 Buscar cliente o título…" class="inp-search"/>
+               placeholder="Buscar cliente o título..." class="inp-search"/>
         <select [(ngModel)]="filtroEstado" (change)="cargar()" class="sel">
           <option value="">Todos los estados</option>
           <option *ngFor="let e of estados" [value]="e">{{ e | titlecase }}</option>
@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <div *ngIf="cargando()" class="loading">Cargando casos…</div>
+    <div *ngIf="cargando()" class="loading">Cargando casos...</div>
 
     <div class="grid" *ngIf="!cargando()">
       <div *ngIf="casosFiltrados.length === 0" class="empty">
@@ -39,7 +39,7 @@
         <h3>{{ caso.titulo }}</h3>
         <p class="meta">👤 {{ caso.cliente }}</p>
         <p class="meta" *ngIf="caso.numero_expediente">📄 Exp. {{ caso.numero_expediente }}</p>
-        <p class="meta" *ngIf="caso.juzgado">🏛️ {{ caso.juzgado }}</p>
+        <p class="meta" *ngIf="caso.juzgado">🏛 {{ caso.juzgado }}</p>
         <p class="meta">📅 {{ caso.fecha_inicio | date:'dd/MM/yyyy' }}</p>
         <div class="card-actions" (click)="$event.stopPropagation()">
           <button *ngIf="caso.estado==='activo'"
@@ -48,7 +48,7 @@
           <button *ngIf="caso.estado==='cerrado'"
                   (click)="cambiarEstado(caso.id!, 'activo')"
                   class="btn-sm btn-ok">Reabrir</button>
-          <button (click)="eliminar(caso.id!)" class="btn-sm btn-ghost">🗑️</button>
+          <button (click)="eliminar(caso.id!)" class="btn-sm btn-ghost">🗑</button>
         </div>
       </div>
     </div>
@@ -57,7 +57,12 @@
   <!-- ── NUEVO CASO ── -->
   <ng-container *ngIf="vista() === 'nuevo'">
     <div class="page-head">
-      <button (click)="vista.set('lista')" class="btn-back">← Volver</button>
+      <button (click)="vista.set('lista')" class="btn-back">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Volver
+      </button>
       <h2>Nuevo Caso</h2>
     </div>
     <div class="form-card">
@@ -102,13 +107,13 @@
           <div class="fg full">
             <label>Descripción</label>
             <textarea formControlName="descripcion" rows="3"
-                      placeholder="Breve descripción del caso…"></textarea>
+                      placeholder="Breve descripción del caso..."></textarea>
           </div>
         </div>
         <div class="form-actions">
           <button type="button" (click)="vista.set('lista')" class="btn-secondary">Cancelar</button>
           <button type="submit" [disabled]="form.invalid || cargando()" class="btn-primary">
-            {{ cargando() ? 'Guardando…' : '💾 Guardar Caso' }}
+            {{ cargando() ? 'Guardando...' : 'Guardar Caso' }}
           </button>
         </div>
       </form>
@@ -118,7 +123,12 @@
   <!-- ── DETALLE ── -->
   <ng-container *ngIf="vista() === 'detalle' && casoSeleccionado()">
     <div class="page-head">
-      <button (click)="vista.set('lista')" class="btn-back">← Volver</button>
+      <button (click)="vista.set('lista')" class="btn-back">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Casos
+      </button>
       <div>
         <h2>{{ casoSeleccionado().caso?.titulo }}</h2>
         <span [class]="badgeEstado(casoSeleccionado().caso?.estado)">
@@ -128,8 +138,10 @@
     </div>
 
     <div class="detalle-grid">
+
+      <!-- Info del caso -->
       <div class="panel">
-        <h3>📋 Información del caso</h3>
+        <h3>Información del caso</h3>
         <dl>
           <dt>Cliente</dt>      <dd>{{ casoSeleccionado().caso?.cliente }}</dd>
           <dt>Tipo</dt>         <dd>{{ casoSeleccionado().caso?.tipo | titlecase }}</dd>
@@ -143,11 +155,55 @@
         </p>
       </div>
 
+      <!-- Calculadora de plazos -->
+      <div class="panel panel-plazo">
+        <h3>
+          Calculadora de plazos
+          <span class="panel-badge">Bolivia</span>
+        </h3>
+        <form [formGroup]="plazoForm" (ngSubmit)="calcularPlazo()" class="plazo-form">
+          <div class="fg">
+            <label>Tipo de plazo</label>
+            <select formControlName="tipo_plazo">
+              <option *ngFor="let p of plazosList" [value]="p">{{ getPlazosLabel(p) }}</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Fecha de notificación</label>
+            <input type="date" formControlName="fecha_inicio"/>
+          </div>
+          <button type="submit" class="btn-calcular">Calcular plazo hábil</button>
+        </form>
+
+        <div *ngIf="resultadoPlazo()" class="plazo-result">
+          <div class="plazo-result-header">
+            <span class="plazo-norma">{{ resultadoPlazo()!.norma }}</span>
+            <span class="plazo-dias-hab">{{ resultadoPlazo()!.dias_habiles }} días hábiles</span>
+          </div>
+          <div class="plazo-vence">
+            <span class="plazo-vence-label">Vence el</span>
+            <span class="plazo-vence-fecha">{{ resultadoPlazo()!.fecha_vence | date:'dd/MM/yyyy' }}</span>
+            <span class="plazo-quedan" [class]="getDiasClass()">
+              {{ getDiasQuedan() }} días restantes
+            </span>
+          </div>
+          <div class="plazo-actions">
+            <button class="btn-plazo-cal" (click)="agregarAlCalendario()" [disabled]="agregandoPlazo()">
+              {{ agregandoPlazo() ? 'Guardando...' : '📅 Agregar al calendario' }}
+            </button>
+            <button class="btn-plazo-doc" (click)="generarBorrador(plazoForm.value.tipo_plazo)">
+              ✍ Generar borrador
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notas -->
       <div class="panel">
-        <h3>📝 Notas</h3>
+        <h3>Notas y actuaciones</h3>
         <div class="nota-box">
           <textarea [(ngModel)]="nuevaNota" rows="2"
-                    placeholder="Escribe una nota o actuación…"></textarea>
+                    placeholder="Escribe una nota o actuación..."></textarea>
           <button (click)="agregarNota()" class="btn-primary btn-sm">Agregar</button>
         </div>
         <div class="notas-list">
@@ -160,8 +216,9 @@
         </div>
       </div>
 
+      <!-- Timeline -->
       <div class="panel panel-full">
-        <h3>📅 Línea de tiempo</h3>
+        <h3>Línea de tiempo</h3>
         <div class="timeline">
           <div *ngFor="let t of casoSeleccionado().timeline" class="tl-item">
             <div class="tl-dot"></div>
@@ -170,9 +227,10 @@
               <small>{{ t.fecha | date:'dd/MM/yyyy' }}</small>
             </div>
           </div>
-          <p *ngIf="!casoSeleccionado().timeline?.length" class="empty-txt">Sin actuaciones.</p>
+          <p *ngIf="!casoSeleccionado().timeline?.length" class="empty-txt">Sin actuaciones registradas.</p>
         </div>
       </div>
+
     </div>
   </ng-container>
 

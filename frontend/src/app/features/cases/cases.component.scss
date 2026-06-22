@@ -147,3 +147,81 @@ dd { margin: 0; color: var(--txt); }
   .toolbar { flex-direction: column; align-items: flex-start; }
   .inp-search { width: 100%; }
 }
+
+/* ── PLAZO PANEL ── */
+.panel-plazo { border-color: rgba(15,31,53,.12); }
+
+.panel-badge {
+  font-size: .65rem; font-weight: 600; background: var(--prim);
+  color: white; border-radius: 10px; padding: 1px 7px;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+
+.plazo-form {
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px;
+  .fg { display: flex; flex-direction: column; gap: 4px;
+    label { font-size: .76rem; font-weight: 500; color: var(--txt-2); }
+    select, input {
+      padding: 8px 10px; border: 1px solid var(--bord); border-radius: 8px;
+      font-size: .82rem; font-family: 'DM Sans', sans-serif;
+      background: var(--bg); color: var(--txt); outline: none;
+      &:focus { border-color: var(--prim-3); background: white; }
+    }
+  }
+}
+
+.btn-calcular {
+  background: var(--prim); color: white; border: none; border-radius: 8px;
+  padding: 9px 16px; font-size: .82rem; font-family: 'DM Sans', sans-serif;
+  font-weight: 500; cursor: pointer; transition: .15s;
+  &:hover { background: var(--prim-2); }
+}
+
+.plazo-result {
+  background: var(--bg); border: 1px solid var(--bord); border-radius: 10px; padding: 14px;
+  animation: fadeIn .2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+
+.plazo-result-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.plazo-norma {
+  font-size: .72rem; font-family: 'DM Mono', monospace;
+  color: var(--prim); background: rgba(15,31,53,.06);
+  border-radius: 5px; padding: 2px 7px;
+}
+.plazo-dias-hab {
+  font-size: .72rem; font-weight: 600; color: var(--txt-2);
+}
+
+.plazo-vence {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.plazo-vence-label { font-size: .75rem; color: var(--txt-3); }
+.plazo-vence-fecha {
+  font-size: 1rem; font-weight: 700; color: var(--txt);
+  font-family: 'Playfair Display', serif;
+}
+.plazo-quedan {
+  font-size: .75rem; font-weight: 600; border-radius: 20px; padding: 2px 10px;
+  &.urgente { background: rgba(192,57,43,.1); color: var(--red); }
+  &.proximo { background: rgba(184,135,42,.1); color: var(--gold); }
+  &.normal  { background: rgba(26,107,60,.1);  color: var(--green); }
+}
+
+.plazo-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-plazo-cal {
+  flex: 1; background: var(--surf); border: 1px solid var(--bord); border-radius: 8px;
+  padding: 7px 12px; font-size: .76rem; font-family: 'DM Sans', sans-serif;
+  color: var(--txt-2); cursor: pointer; transition: .15s; text-align: center;
+  &:hover:not(:disabled) { border-color: var(--prim-3); color: var(--prim); }
+  &:disabled { opacity: .5; cursor: not-allowed; }
+}
+.btn-plazo-doc {
+  flex: 1; background: var(--prim); color: white; border: none; border-radius: 8px;
+  padding: 7px 12px; font-size: .76rem; font-family: 'DM Sans', sans-serif;
+  font-weight: 500; cursor: pointer; transition: .15s; text-align: center;
+  &:hover { background: var(--prim-2); }
+}
