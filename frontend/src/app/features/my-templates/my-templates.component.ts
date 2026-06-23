@@ -1,73 +1,143 @@
-import { Component } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
+
+interface Plantilla {
+  id: string;
+  nombre: string;
+  tipo_documento: string;
+  tono: string;
+  resumen_estilo: string;
+  system_prompt: string;
+  variables: string;
+  ficha_estilo: string;
+  created_at: string;
+}
+
+interface FichaEstilo {
+  tono: string;
+  estructura_preferida: string;
+  conectores_frecuentes: string[];
+  nivel_tecnico: string;
+  preferencias_formato: Record<string, boolean>;
+  variables_detectadas: string[];
+  tipo_documento: string;
+  resumen_estilo: string;
+  system_prompt_personalizado: string;
+}
 
 @Component({
   selector: 'app-my-templates',
   standalone: true,
-  imports: [CommonModule],
-  template: `
-<div class="mt-wrap">
-  <header class="mt-header">
-    <div>
-      <h1 class="mt-title">Mis Plantillas</h1>
-      <p class="mt-sub">Documentos con tu estilo personal de redacción</p>
-    </div>
-  </header>
-  <div class="mt-body">
-    <div class="mt-empty">
-      <div class="mt-empty-icon">📋</div>
-      <h2>Construye tu biblioteca personal</h2>
-      <p>Sube documentos Word que ya redactaste y la IA aprende tu estilo.<br>
-         Cada nuevo documento que generes adoptará tu forma de escribir.</p>
-      <div class="mt-features">
-        <div class="mt-feat">
-          <span class="mt-feat-icon">🔍</span>
-          <div>
-            <strong>Análisis de estilo</strong>
-            <p>Detecta tu tono, estructura y terminología preferida</p>
-          </div>
-        </div>
-        <div class="mt-feat">
-          <span class="mt-feat-icon">✨</span>
-          <div>
-            <strong>Variables inteligentes</strong>
-            <p>Identifica los campos que cambian en cada documento</p>
-          </div>
-        </div>
-        <div class="mt-feat">
-          <span class="mt-feat-icon">⚡</span>
-          <div>
-            <strong>Generación personalizada</strong>
-            <p>Nuevos documentos con tu misma firma jurídica</p>
-          </div>
-        </div>
-      </div>
-      <div class="mt-coming">
-        <span class="mt-coming-badge">Próximamente</span>
-        <p>Módulo en desarrollo — disponible en la siguiente versión</p>
-      </div>
-    </div>
-  </div>
-</div>
-  `,
-  styles: [`
-    .mt-wrap { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg); }
-    .mt-header { padding: 16px 28px; background: var(--surf); border-bottom: 1px solid var(--bord); flex-shrink: 0; }
-    .mt-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 600; color: var(--txt); margin: 0; }
-    .mt-sub { font-size: .72rem; color: var(--txt-3); margin-top: 2px; }
-    .mt-body { flex: 1; overflow-y: auto; display: flex; align-items: center; justify-content: center; padding: 32px; }
-    .mt-empty { text-align: center; max-width: 520px; }
-    .mt-empty-icon { font-size: 3rem; margin-bottom: 16px; }
-    .mt-empty h2 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--txt); margin-bottom: 12px; }
-    .mt-empty > p { font-size: .85rem; color: var(--txt-3); line-height: 1.6; margin-bottom: 28px; }
-    .mt-features { display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 28px; }
-    .mt-feat { display: flex; gap: 14px; align-items: flex-start; background: var(--surf); border: 1px solid var(--bord); border-radius: 10px; padding: 14px 16px; }
-    .mt-feat-icon { font-size: 1.3rem; flex-shrink: 0; }
-    .mt-feat strong { font-size: .85rem; font-weight: 500; color: var(--txt); display: block; margin-bottom: 2px; }
-    .mt-feat p { font-size: .76rem; color: var(--txt-3); margin: 0; }
-    .mt-coming { background: var(--gold-bg); border: 1px solid rgba(184,135,42,.2); border-radius: 10px; padding: 14px 18px; }
-    .mt-coming-badge { display: inline-block; background: var(--gold); color: white; font-size: .68rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-bottom: 6px; letter-spacing: .04em; }
-    .mt-coming p { font-size: .78rem; color: var(--gold); margin: 0; }
-  `]
+  imports: [CommonModule, FormsModule],
+  templateUrl: './my-templates.component.html',
+  styleUrls: ['./my-templates.component.scss']
 })
-export class MyTemplatesComponent {}
+export class MyTemplatesComponent implements OnInit {
+  private http = inject(HttpClient);
+  private api  = environment.apiUrl + '/api/v1/documents';
+
+  plantillas    = signal<Plantilla[]>([]);
+  cargando      = signal(false);
+  analizando    = signal(false);
+  selectedFile  = signal<File | null>(null);
+  nombre        = '';
+  dragOver      = signal(false);
+  fichaActual   = signal<{ ficha: FichaEstilo; nombre: string } | null>(null);
+  vista         = signal<'lista' | 'detalle'>('lista');
+
+  ngOnInit() { this.cargar(); }
+
+  cargar() {
+    this.cargando.set(true);
+    this.http.get<Plantilla[]>(`${this.api}/plantillas`).subscribe({
+      next: data => { this.plantillas.set(data); this.cargando.set(false); },
+      error: () => this.cargando.set(false)
+    });
+  }
+
+  onDragOver(e: DragEvent) { e.preventDefault(); this.dragOver.set(true); }
+  onDragLeave() { this.dragOver.set(false); }
+  onDrop(e: DragEvent) {
+    e.preventDefault(); this.dragOver.set(false);
+    const file = e.dataTransfer?.files[0];
+    if (file) this.selectedFile.set(file);
+  }
+  onFileSelected(e: Event) {
+    const input = e.target as HTMLInputElement;
+    if (input.files?.[0]) this.selectedFile.set(input.files[0]);
+  }
+
+  async analizar() {
+    const file = this.selectedFile();
+    if (!file || !this.nombre.trim()) return;
+
+    this.analizando.set(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('nombre', this.nombre.trim());
+
+    this.http.post<any>(`${this.api}/plantillas/analizar`, formData).subscribe({
+      next: result => {
+        this.analizando.set(false);
+        this.fichaActual.set({ ficha: result.ficha, nombre: result.nombre });
+        this.vista.set('detalle');
+        this.cargar();
+        this.selectedFile.set(null);
+        this.nombre = '';
+      },
+      error: err => {
+        this.analizando.set(false);
+        alert('Error analizando: ' + (err.error?.detail || err.message));
+      }
+    });
+  }
+
+  verDetalle(p: Plantilla) {
+    try {
+      const ficha = JSON.parse(p.ficha_estilo) as FichaEstilo;
+      this.fichaActual.set({ ficha, nombre: p.nombre });
+      this.vista.set('detalle');
+    } catch { }
+  }
+
+  eliminar(id: string) {
+    if (!confirm('¿Eliminar esta plantilla?')) return;
+    this.http.delete(`${this.api}/plantillas/${id}`).subscribe(() => {
+      this.cargar();
+      if (this.vista() === 'detalle') { this.vista.set('lista'); this.fichaActual.set(null); }
+    });
+  }
+
+  volver() { this.vista.set('lista'); this.fichaActual.set(null); }
+
+  getFormatKeys(pref: Record<string, boolean>): string[] {
+    return Object.keys(pref).filter(k => pref[k]);
+  }
+
+  formatKey(k: string): string {
+    const m: Record<string, string> = {
+      usa_negritas: 'Negritas', usa_numeracion: 'Numeración',
+      usa_sangria_francesa: 'Sangría francesa', citas_al_pie: 'Citas al pie'
+    };
+    return m[k] || k;
+  }
+
+  getTipoIcon(tipo: string): string {
+    const icons: Record<string, string> = {
+      contrato: '📋', demanda: '⚖', memorial: '📄',
+      poder: '🏛', denuncia: '🚨', general: '📝'
+    };
+    return icons[tipo] || '📝';
+  }
+
+  getTonoBadge(tono: string): string {
+    const m: Record<string, string> = {
+      formal: 'tono-formal', conciliador: 'tono-conciliador',
+      agresivo: 'tono-agresivo', tecnico: 'tono-tecnico', notarial: 'tono-notarial'
+    };
+    return m[tono] || 'tono-formal';
+  }
+}

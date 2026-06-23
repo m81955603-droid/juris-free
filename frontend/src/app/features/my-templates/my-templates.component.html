@@ -1,0 +1,198 @@
+<div class="mt-root">
+
+  <header class="mt-header">
+    <div class="header-left">
+      @if (vista() === 'detalle') {
+        <button class="back-btn" (click)="volver()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          Mis Plantillas
+        </button>
+      } @else {
+        <div>
+          <h1 class="mt-title">Mis Plantillas</h1>
+          <p class="mt-sub">La IA aprende tu estilo jurídico personal</p>
+        </div>
+      }
+    </div>
+  </header>
+
+  <!-- LISTA -->
+  @if (vista() === 'lista') {
+    <div class="mt-body">
+
+      <!-- Upload zone -->
+      <div class="upload-panel">
+        <h3 class="upload-title">Agregar nueva plantilla</h3>
+        <p class="upload-desc">Sube un documento Word o PDF que hayas redactado — la IA extrae tu estilo único</p>
+
+        <div class="drop-zone" [class.drag-over]="dragOver()"
+             (dragover)="onDragOver($event)" (dragleave)="onDragLeave()"
+             (drop)="onDrop($event)" (click)="fileInput.click()">
+          <input #fileInput type="file" accept=".pdf,.docx,.doc,.txt" style="display:none" (change)="onFileSelected($event)">
+          @if (selectedFile()) {
+            <div class="file-selected">
+              <span class="file-icon-wrap">📄</span>
+              <span class="file-name">{{ selectedFile()!.name }}</span>
+              <button class="clear-file" (click)="$event.stopPropagation(); selectedFile.set(null)">×</button>
+            </div>
+          } @else {
+            <div class="drop-content">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="color:var(--txt-3)">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              <p>Arrastra tu documento aquí o haz clic</p>
+              <span class="drop-hint">PDF · Word (.docx) · hasta 20MB</span>
+            </div>
+          }
+        </div>
+
+        <div class="upload-form">
+          <input class="nombre-input" [(ngModel)]="nombre"
+                 placeholder="Nombre de la plantilla (ej: Mi contrato de compraventa)"/>
+          <button class="btn-analizar" (click)="analizar()"
+                  [disabled]="analizando() || !selectedFile() || !nombre.trim()">
+            @if (analizando()) {
+              <div class="btn-spinner"></div>
+              Analizando estilo...
+            } @else {
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+              </svg>
+              Analizar estilo con IA
+            }
+          </button>
+        </div>
+      </div>
+
+      <!-- Lista de plantillas -->
+      @if (cargando()) {
+        <div class="loading-state">
+          <div class="loading-ring"></div>
+          <p>Cargando plantillas...</p>
+        </div>
+      } @else if (plantillas().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <h3>Aún no tienes plantillas</h3>
+          <p>Sube un documento que ya redactaste para que la IA aprenda tu estilo</p>
+        </div>
+      } @else {
+        <div class="plantillas-section">
+          <h3 class="section-title">Tus plantillas ({{ plantillas().length }})</h3>
+          <div class="plantillas-grid">
+            @for (p of plantillas(); track p.id) {
+              <div class="plantilla-card" (click)="verDetalle(p)">
+                <div class="plantilla-card-top">
+                  <span class="tipo-icon">{{ getTipoIcon(p.tipo_documento) }}</span>
+                  <span class="tono-badge" [class]="getTonoBadge(p.tono)">{{ p.tono }}</span>
+                </div>
+                <h4 class="plantilla-nombre">{{ p.nombre }}</h4>
+                <p class="plantilla-resumen">{{ p.resumen_estilo }}</p>
+                <div class="plantilla-footer">
+                  <span class="plantilla-fecha">{{ p.created_at | date:'dd/MM/yyyy' }}</span>
+                  <button class="btn-delete-sm" (click)="$event.stopPropagation(); eliminar(p.id)">
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+
+  <!-- DETALLE FICHA -->
+  @if (vista() === 'detalle' && fichaActual()) {
+    <div class="detalle-body">
+      <div class="ficha-hero">
+        <div class="ficha-hero-icon">✨</div>
+        <div>
+          <h2 class="ficha-nombre">{{ fichaActual()!.nombre }}</h2>
+          <p class="ficha-resumen">{{ fichaActual()!.ficha.resumen_estilo }}</p>
+        </div>
+      </div>
+
+      <div class="ficha-grid">
+
+        <!-- Perfil de estilo -->
+        <div class="ficha-card">
+          <h4 class="ficha-card-title">Perfil de estilo</h4>
+          <div class="ficha-rows">
+            <div class="ficha-row">
+              <span class="ficha-label">Tono</span>
+              <span class="tono-badge" [class]="getTonoBadge(fichaActual()!.ficha.tono)">{{ fichaActual()!.ficha.tono }}</span>
+            </div>
+            <div class="ficha-row">
+              <span class="ficha-label">Nivel técnico</span>
+              <span class="ficha-val">{{ fichaActual()!.ficha.nivel_tecnico }}</span>
+            </div>
+            <div class="ficha-row">
+              <span class="ficha-label">Tipo de documento</span>
+              <span class="ficha-val">{{ fichaActual()!.ficha.tipo_documento }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Estructura -->
+        <div class="ficha-card">
+          <h4 class="ficha-card-title">Estructura preferida</h4>
+          <p class="ficha-text">{{ fichaActual()!.ficha.estructura_preferida }}</p>
+        </div>
+
+        <!-- Conectores frecuentes -->
+        @if (fichaActual()!.ficha.conectores_frecuentes?.length > 0) {
+          <div class="ficha-card">
+            <h4 class="ficha-card-title">Conectores jurídicos frecuentes</h4>
+            <div class="tags-wrap">
+              @for (c of fichaActual()!.ficha.conectores_frecuentes; track c) {
+                <span class="tag">{{ c }}</span>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Variables detectadas -->
+        @if (fichaActual()!.ficha.variables_detectadas?.length > 0) {
+          <div class="ficha-card">
+            <h4 class="ficha-card-title">Variables detectadas</h4>
+            <div class="tags-wrap">
+              @for (v of fichaActual()!.ficha.variables_detectadas; track v) {
+                <span class="tag var-tag">{{ v }}</span>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Formato -->
+        @if (fichaActual()!.ficha.preferencias_formato) {
+          <div class="ficha-card">
+            <h4 class="ficha-card-title">Preferencias de formato</h4>
+            <div class="formato-list">
+              @for (k of getFormatKeys(fichaActual()!.ficha.preferencias_formato); track k) {
+                <div class="formato-item">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  {{ formatKey(k) }}
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- System prompt -->
+        <div class="ficha-card ficha-prompt">
+          <h4 class="ficha-card-title">Instrucción de estilo para IA</h4>
+          <p class="ficha-prompt-text">{{ fichaActual()!.ficha.system_prompt_personalizado }}</p>
+          <p class="ficha-prompt-hint">Esta instrucción se inyecta automáticamente cuando usas esta plantilla en el Generador</p>
+        </div>
+
+      </div>
+    </div>
+  }
+
+</div>
