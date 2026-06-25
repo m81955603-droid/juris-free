@@ -14,6 +14,7 @@ export const routes: Routes = [
   { path: 'calendar',     canActivate: [authGuard], loadComponent: () => import('./features/calendar/calendar.component').then(m => m.CalendarComponent) },
   { path: 'clients',      canActivate: [authGuard], loadComponent: () => import('./features/clients/clients.component').then(m => m.ClientsComponent) },
   { path: 'settings',     canActivate: [authGuard], loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent) },
+  { path: 'search',       canActivate: [authGuard], loadComponent: () => import('./features/global-search/global-search.component').then(m => m.GlobalSearchComponent) },
   { path: 'auth/callback', loadComponent: () => import('./core/auth-callback/auth-callback.component').then(m => m.AuthCallbackComponent) },
   { path: '**', redirectTo: '/login' }
 ];

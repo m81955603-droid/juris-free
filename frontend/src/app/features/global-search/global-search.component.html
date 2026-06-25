@@ -1,0 +1,115 @@
+<div class="gs-root">
+
+  <header class="gs-header">
+    <h1 class="gs-title">Búsqueda Global</h1>
+    <p class="gs-sub">Busca en casos, clientes, notas y biblioteca legal — todo en un lugar</p>
+  </header>
+
+  <div class="gs-search-zone">
+    <div class="gs-input-wrap" [class.active]="query.length > 0">
+      <svg class="gs-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input
+        class="gs-input"
+        [(ngModel)]="query"
+        (input)="onInput()"
+        (keydown)="onKeydown($event)"
+        placeholder="Buscar en casos, clientes, notas, artículos legales..."
+        autofocus>
+      @if (isSearching()) {
+        <div class="gs-spinner"></div>
+      } @else if (query) {
+        <button class="gs-clear" (click)="limpiar()">×</button>
+      }
+    </div>
+
+    <div class="gs-tags">
+      <span class="gs-tag">
+        <span style="color:#1a5296">⚖</span> Casos
+      </span>
+      <span class="gs-tag">
+        <span style="color:#1a6b3c">👤</span> Clientes
+      </span>
+      <span class="gs-tag">
+        <span style="color:#6c3483">📝</span> Notas
+      </span>
+      <span class="gs-tag">
+        <span style="color:#c4922a">📋</span> Biblioteca legal
+      </span>
+    </div>
+  </div>
+
+  <div class="gs-body">
+
+    @if (!hasSearched()) {
+      <div class="gs-empty-initial">
+        <div class="gs-empty-icon">🔍</div>
+        <h3>Busca en todo el sistema</h3>
+        <p>Escribe al menos 2 caracteres para comenzar</p>
+        <div class="gs-examples">
+          <p class="gs-examples-title">Ejemplos de búsqueda:</p>
+          <div class="gs-examples-grid">
+            <button class="gs-example" (click)="query = 'prescripcion'; doSearch('prescripcion')">prescripción</button>
+            <button class="gs-example" (click)="query = 'divorcio'; doSearch('divorcio')">divorcio</button>
+            <button class="gs-example" (click)="query = 'despido'; doSearch('despido')">despido injustificado</button>
+            <button class="gs-example" (click)="query = 'contrato'; doSearch('contrato')">contrato</button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (hasSearched() && !isSearching() && results().length === 0) {
+      <div class="gs-no-results">
+        <div class="gs-empty-icon">😶</div>
+        <h3>Sin resultados para "{{ query }}"</h3>
+        <p>Intenta con términos más generales o revisa la ortografía</p>
+      </div>
+    }
+
+    @if (results().length > 0) {
+      <div class="gs-results">
+        <p class="gs-count">
+          <strong>{{ results().length }}</strong> resultados para "<em>{{ query }}</em>"
+        </p>
+
+        @for (grupo of grupos; track grupo.tipo) {
+          <div class="gs-grupo">
+            <div class="gs-grupo-header">
+              <span class="gs-grupo-icon">{{ tipoIcons[grupo.tipo] }}</span>
+              <span class="gs-grupo-label">{{ tipoLabels[grupo.tipo] }}</span>
+              <span class="gs-grupo-count">{{ grupo.hits.length }}</span>
+            </div>
+            <div class="gs-hits">
+              @for (hit of grupo.hits; track hit.id) {
+                <div class="gs-hit" (click)="navigate(hit)">
+                  <div class="gs-hit-tipo" [style.background]="tipoColors[hit.tipo] + '15'" [style.color]="tipoColors[hit.tipo]">
+                    {{ tipoIcons[hit.tipo] }}
+                  </div>
+                  <div class="gs-hit-body">
+                    <p class="gs-hit-titulo">{{ hit.titulo }}</p>
+                    @if (hit.subtitulo) {
+                      <p class="gs-hit-sub">{{ hit.subtitulo }}</p>
+                    }
+                    @if (hit.snippet) {
+                      <p class="gs-hit-snippet">{{ hit.snippet }}</p>
+                    }
+                  </div>
+                  <div class="gs-hit-right">
+                    @if (hit.tipo === 'norma') {
+                      <span class="gs-score">{{ (hit.score * 100).toFixed(0) }}%</span>
+                    }
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--txt-3)">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                    </svg>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+  </div>
+</div>
