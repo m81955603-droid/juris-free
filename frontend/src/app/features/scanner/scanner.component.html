@@ -1,0 +1,163 @@
+<div class="scanner-container">
+
+  <!-- HEADER -->
+  <div class="scanner-header">
+    <h1>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9V6a1 1 0 011-1h3M3 15v3a1 1 0 001 1h3m12-15h-3a1 1 0 00-1 1v3m4 9v3a1 1 0 01-1 1h-3"/>
+        <rect x="7" y="7" width="10" height="10" rx="1"/>
+      </svg>
+      Scanner de Documentos
+    </h1>
+
+    <!-- Selector de modo -->
+    <div class="type-tabs" *ngIf="mode() === 'idle'">
+      <button [class.active]="scanType() === 'document'" (click)="setScanType('document')">
+        Documento
+      </button>
+      <button [class.active]="scanType() === 'carnet'" (click)="setScanType('carnet')">
+        Carnet CI
+      </button>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="error-banner" *ngIf="errorMsg()">
+    <span>⚠️ {{ errorMsg() }}</span>
+  </div>
+
+  <!-- ESTADO IDLE -->
+  <div class="idle-state" *ngIf="mode() === 'idle'">
+    <div class="idle-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M3 9V6a1 1 0 011-1h3M3 15v3a1 1 0 001 1h3m12-15h-3a1 1 0 00-1 1v3m4 9v3a1 1 0 01-1 1h-3"/>
+        <rect x="7" y="7" width="10" height="10" rx="1"/>
+      </svg>
+    </div>
+
+    <div *ngIf="scanType() === 'document'">
+      <h2>Escanear Documento</h2>
+      <p>Apunta la cámara al documento. El sistema extraerá el texto automáticamente con OCR.</p>
+    </div>
+    <div *ngIf="scanType() === 'carnet'">
+      <h2>Escanear Carnet de Identidad</h2>
+      <p>Captura ambos lados del carnet. El sistema extraerá nombre, CI, fecha de nacimiento y más.</p>
+      <div class="carnet-steps">
+        <div class="step" [class.done]="carnetFront()">
+          <span class="step-num">1</span> Anverso
+          <span *ngIf="carnetFront()" class="check">✓</span>
+        </div>
+        <div class="step" [class.done]="carnetBack()">
+          <span class="step-num">2</span> Reverso
+          <span *ngIf="carnetBack()" class="check">✓</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-primary" (click)="startCamera()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      {{ scanType() === 'carnet' && carnetFront() ? 'Capturar Reverso' : 'Abrir Cámara' }}
+    </button>
+  </div>
+
+  <!-- CÁMARA ACTIVA -->
+  <div class="camera-state" *ngIf="mode() === 'camera'">
+    <div class="video-wrapper">
+      <video #videoEl autoplay playsinline muted></video>
+      <canvas #canvasEl style="display:none"></canvas>
+      <div class="scan-overlay">
+        <div class="scan-frame"></div>
+        <p class="scan-hint">
+          {{ scanType() === 'carnet' && carnetStep() === 'front' ? 'Encuadra el ANVERSO del carnet' :
+             scanType() === 'carnet' && carnetStep() === 'back' ? 'Encuadra el REVERSO del carnet' :
+             'Encuadra el documento en el recuadro' }}
+        </p>
+      </div>
+    </div>
+    <div class="camera-actions">
+      <button class="btn-capture" (click)="capture()">
+        <div class="capture-ring"></div>
+      </button>
+      <button class="btn-cancel" (click)="reset()">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- PROCESANDO -->
+  <div class="processing-state" *ngIf="mode() === 'processing'">
+    <div class="spinner"></div>
+    <p>Analizando imagen con Gemini Vision...</p>
+    <p class="sub">Extrayendo texto del documento</p>
+  </div>
+
+  <!-- RESULTADO DOCUMENTO -->
+  <div class="result-state" *ngIf="mode() === 'result' && scanType() === 'document'">
+    <div class="result-layout">
+      <div class="image-preview">
+        <img [src]="capturedImage()" alt="Documento escaneado"/>
+      </div>
+      <div class="ocr-result">
+        <div class="result-header">
+          <h3>Texto Extraído</h3>
+          <div class="result-actions">
+            <button class="btn-sm" (click)="copyText()">📋 Copiar</button>
+            <button class="btn-sm" (click)="sendToAnalyzer()">🔍 Analizar</button>
+            <button class="btn-sm" (click)="downloadPDF()">⬇️ Guardar</button>
+          </div>
+        </div>
+        <div class="ocr-text">
+          <pre *ngIf="ocrResult()">{{ ocrResult() }}</pre>
+          <div *ngIf="!ocrResult() && !isLoading()" class="no-text">
+            No se pudo extraer texto. Intenta con mejor iluminación.
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-secondary" (click)="reset()">Nuevo escaneo</button>
+  </div>
+
+  <!-- RESULTADO CARNET - paso intermedio (capturó anverso, falta reverso) -->
+  <div class="result-state" *ngIf="mode() === 'result' && scanType() === 'carnet' && !carnetBack()">
+    <div class="carnet-intermediate">
+      <img [src]="carnetFront()" alt="Anverso capturado" class="carnet-preview"/>
+      <p>✅ Anverso capturado. Ahora captura el reverso.</p>
+      <button class="btn-primary" (click)="captureCarnetBack()">
+        Capturar Reverso
+      </button>
+      <button class="btn-secondary" (click)="reset()">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- RESULTADO CARNET - datos extraídos -->
+  <div class="result-state" *ngIf="mode() === 'result' && scanType() === 'carnet' && carnetBack()">
+    <div class="carnet-result">
+      <div class="carnet-images">
+        <div>
+          <small>Anverso</small>
+          <img [src]="carnetFront()" alt="Anverso"/>
+        </div>
+        <div>
+          <small>Reverso</small>
+          <img [src]="carnetBack()" alt="Reverso"/>
+        </div>
+      </div>
+
+      <div class="carnet-data" *ngIf="extractedData()">
+        <h3>Datos Extraídos</h3>
+        <div class="data-grid">
+          <div class="data-field" *ngFor="let field of getCarnetFields()">
+            <label>{{ field.label }}</label>
+            <span>{{ field.value || '—' }}</span>
+          </div>
+        </div>
+        <div class="carnet-actions">
+          <button class="btn-sm" (click)="copyCarnetData()">📋 Copiar datos</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn-secondary" (click)="reset()">Nuevo escaneo</button>
+  </div>
+
+</div>

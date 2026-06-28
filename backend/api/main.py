@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import logging
 import os
 load_dotenv(dotenv_path=r"C:\proyectos\juris-free\backend\.env", override=True)
-from .routes import llm, embeddings, health, library, muestras, cases, calendar, clients, documents, search
+from .routes import llm, embeddings, health, library, muestras, cases, calendar, clients, documents, search, ocr
 logging.basicConfig(level=logging.INFO)
 
 def download_muestras():
@@ -105,4 +105,7 @@ app.include_router(calendar.router,  prefix="/api/v1/calendar",  tags=["Calendar
 app.include_router(clients.router,  prefix="/api/v1",         tags=["Clientes"])
 app.include_router(muestras.router,  prefix="/api/v1/muestras",  tags=["Muestras"])
 app.include_router(documents.router, prefix="/api/v1/documents", tags=["Documentos"])
+app.include_router(ocr.router,      prefix="/api/v1/ocr",       tags=["OCR"])
 app.include_router(search.router,    prefix="/api/v1",           tags=["Busqueda"])
+
+
