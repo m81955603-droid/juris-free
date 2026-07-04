@@ -111,8 +111,8 @@
       <div class="ficha-hero">
         <div class="ficha-hero-icon">✨</div>
         <div>
-          <h2 class="ficha-nombre">{{ fichaActual()!.nombre }}</h2>
-          <p class="ficha-resumen">{{ fichaActual()!.ficha.resumen_estilo }}</p>
+          <h2 class="ficha-nombre">{{ fichaActual()?.nombre }}</h2>
+          <p class="ficha-resumen">{{ fichaActual()?.ficha?.resumen_estilo }}</p>
         </div>
       </div>
 
@@ -124,15 +124,15 @@
           <div class="ficha-rows">
             <div class="ficha-row">
               <span class="ficha-label">Tono</span>
-              <span class="tono-badge" [class]="getTonoBadge(fichaActual()!.ficha.tono)">{{ fichaActual()!.ficha.tono }}</span>
+              <span class="tono-badge" [class]="getTonoBadge(fichaActual()?.ficha?.tono || '')">{{ fichaActual()?.ficha?.tono }}</span>
             </div>
             <div class="ficha-row">
               <span class="ficha-label">Nivel técnico</span>
-              <span class="ficha-val">{{ fichaActual()!.ficha.nivel_tecnico }}</span>
+              <span class="ficha-val">{{ fichaActual()?.ficha?.nivel_tecnico }}</span>
             </div>
             <div class="ficha-row">
               <span class="ficha-label">Tipo de documento</span>
-              <span class="ficha-val">{{ fichaActual()!.ficha.tipo_documento }}</span>
+              <span class="ficha-val">{{ fichaActual()?.ficha?.tipo_documento }}</span>
             </div>
           </div>
         </div>
@@ -140,15 +140,15 @@
         <!-- Estructura -->
         <div class="ficha-card">
           <h4 class="ficha-card-title">Estructura preferida</h4>
-          <p class="ficha-text">{{ fichaActual()!.ficha.estructura_preferida }}</p>
+          <p class="ficha-text">{{ fichaActual()?.ficha?.estructura_preferida }}</p>
         </div>
 
         <!-- Conectores frecuentes -->
-        @if (fichaActual()!.ficha.conectores_frecuentes?.length > 0) {
+        @if ((fichaActual()?.ficha?.conectores_frecuentes?.length ?? 0) > 0) {
           <div class="ficha-card">
             <h4 class="ficha-card-title">Conectores jurídicos frecuentes</h4>
             <div class="tags-wrap">
-              @for (c of fichaActual()!.ficha.conectores_frecuentes; track c) {
+              @for (c of fichaActual()?.ficha?.conectores_frecuentes; track c) {
                 <span class="tag">{{ c }}</span>
               }
             </div>
@@ -156,11 +156,11 @@
         }
 
         <!-- Variables detectadas -->
-        @if (fichaActual()!.ficha.variables_detectadas?.length > 0) {
+        @if ((fichaActual()?.ficha?.variables_detectadas?.length ?? 0) > 0) {
           <div class="ficha-card">
             <h4 class="ficha-card-title">Variables detectadas</h4>
             <div class="tags-wrap">
-              @for (v of fichaActual()!.ficha.variables_detectadas; track v) {
+              @for (v of fichaActual()?.ficha?.variables_detectadas; track v) {
                 <span class="tag var-tag">{{ v }}</span>
               }
             </div>
@@ -168,11 +168,11 @@
         }
 
         <!-- Formato -->
-        @if (fichaActual()!.ficha.preferencias_formato) {
+        @if (fichaActual()?.ficha?.preferencias_formato) {
           <div class="ficha-card">
             <h4 class="ficha-card-title">Preferencias de formato</h4>
             <div class="formato-list">
-              @for (k of getFormatKeys(fichaActual()!.ficha.preferencias_formato); track k) {
+              @for (k of getFormatKeys(fichaActual()?.ficha?.preferencias_formato || {}); track k) {
                 <div class="formato-item">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
@@ -187,7 +187,7 @@
         <!-- System prompt -->
         <div class="ficha-card ficha-prompt">
           <h4 class="ficha-card-title">Instrucción de estilo para IA</h4>
-          <p class="ficha-prompt-text">{{ fichaActual()!.ficha.system_prompt_personalizado }}</p>
+          <p class="ficha-prompt-text">{{ fichaActual()?.ficha?.system_prompt_personalizado }}</p>
           <p class="ficha-prompt-hint">Esta instrucción se inyecta automáticamente cuando usas esta plantilla en el Generador</p>
         </div>
 
@@ -196,3 +196,7 @@
   }
 
 </div>
+
+
+
+
