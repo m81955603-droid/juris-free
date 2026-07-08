@@ -157,18 +157,38 @@ Si un campo no se ve claramente, dejarlo vacío.`;
 
 
 
+  copiado = signal(false);
+
   downloadPDF() {
+    const img = this.capturedImage();
+    if (!img) return;
     const link = document.createElement('a');
-    link.href = this.capturedImage()!;
+    link.href = img;
     link.download = `escaneado_${Date.now()}.jpg`;
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   }
 
-  copyText() {
+  async copyText() {
     const text = this.ocrResult();
-    if (text) {
-      navigator.clipboard.writeText(text);
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback para navegadores/webviews que bloquean el Clipboard API
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
     }
+    this.copiado.set(true);
+    setTimeout(() => this.copiado.set(false), 2000);
   }
 
   sendToAnalyzer() {

@@ -102,7 +102,7 @@
         <div class="result-header">
           <h3>Texto Extraído</h3>
           <div class="result-actions">
-            <button class="btn-sm" (click)="copyText()">📋 Copiar</button>
+            <button class="btn-sm" (click)="copyText()">{{ copiado() ? '✅ Copiado' : '📋 Copiar' }}</button>
             <button class="btn-sm" (click)="sendToAnalyzer()">🔍 Analizar</button>
             <button class="btn-sm" (click)="downloadPDF()">⬇️ Guardar</button>
           </div>

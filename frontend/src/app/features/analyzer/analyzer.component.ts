@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LlmProxyService } from '../../core/services/llm-proxy.service';
@@ -28,7 +28,7 @@ interface AnalysisResult {
   templateUrl: './analyzer.component.html',
   styleUrls:   ['./analyzer.component.scss']
 })
-export class AnalyzerComponent {
+export class AnalyzerComponent implements OnInit {
   private llm    = inject(LlmProxyService);
   private docSvc = inject(DocumentService);
 
@@ -73,6 +73,27 @@ export class AnalyzerComponent {
       '¿Qué pasos debo seguir después?'
     ]
   };
+
+  // ── RECIBIR TEXTO DESDE EL SCANNER ────────────────
+
+  async ngOnInit(): Promise<void> {
+    const textoEscaneado = sessionStorage.getItem('scanner_ocr_text');
+    if (textoEscaneado && textoEscaneado.trim()) {
+      sessionStorage.removeItem('scanner_ocr_text'); // usar una sola vez
+      this.fileName.set('Documento escaneado.txt');
+      this.fileType.set('.txt');
+      this.fileSize.set(textoEscaneado.length);
+      this.extractedText.set(textoEscaneado);
+      this.step.set('analyzing');
+      this.isAnalyzing.set(true);
+      try {
+        await this.analyzeDocument(textoEscaneado, 'Documento escaneado');
+      } catch {
+        this.step.set('upload');
+        this.isAnalyzing.set(false);
+      }
+    }
+  }
 
   // ── CARGA DE ARCHIVOS ─────────────────────────────
 
