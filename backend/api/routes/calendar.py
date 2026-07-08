@@ -1,16 +1,14 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timedelta, date
-import uuid, os, httpx
+import uuid, os
+import httpx
+
+from ..core.auth import get_current_user, sb_user_headers, CurrentUser
 
 router = APIRouter()
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", os.getenv("SUPABASE_KEY", ""))
-
-def sb_headers():
-    return {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}",
-            "Content-Type": "application/json", "Prefer": "return=representation"}
 
 PLAZOS = {
     "apelacion_civil":      {"dias": 10, "norma": "Art. 261 CPC"},
@@ -47,18 +45,19 @@ async def get_plazos():
     return {"plazos": PLAZOS}
 
 @router.get("/proximos-vencimientos")
-async def upcoming(dias: int = 7):
+async def upcoming(dias: int = 7, user: CurrentUser = Depends(get_current_user)):
     hoy = date.today()
     tope = hoy + timedelta(days=dias)
     if not SUPABASE_URL: return {"vencimientos": [], "demo": True}
     params = f"select=*&fecha_inicio=gte.{hoy}&fecha_inicio=lte.{tope}&completado=eq.false&order=fecha_inicio.asc"
     async with httpx.AsyncClient() as c:
-        r = await c.get(f"{SUPABASE_URL}/rest/v1/calendario_eventos?{params}", headers=sb_headers())
+        r = await c.get(f"{SUPABASE_URL}/rest/v1/calendario_eventos?{params}", headers=sb_user_headers(user))
     return {"vencimientos": r.json() if r.status_code in (200,206) else []}
 
 @router.get("/")
 async def list_events(mes: Optional[int]=None, anio: Optional[int]=None,
-                      caso_id: Optional[str]=None, limit: int=100):
+                      caso_id: Optional[str]=None, limit: int=100,
+                      user: CurrentUser = Depends(get_current_user)):
     if not SUPABASE_URL:
         hoy = date.today()
         return {"eventos": [
@@ -71,36 +70,37 @@ async def list_events(mes: Optional[int]=None, anio: Optional[int]=None,
         ultimo = (date(anio,mes,1).replace(day=28)+timedelta(4)).replace(day=1)-timedelta(1)
         params += f"&fecha_inicio=gte.{anio}-{mes:02d}-01&fecha_inicio=lte.{ultimo}"
     async with httpx.AsyncClient() as c:
-        r = await c.get(f"{SUPABASE_URL}/rest/v1/calendario_eventos?{params}", headers=sb_headers())
+        r = await c.get(f"{SUPABASE_URL}/rest/v1/calendario_eventos?{params}", headers=sb_user_headers(user))
     if r.status_code not in (200,206): raise HTTPException(502, r.text)
     return {"eventos": r.json(), "plazos_tipos": list(PLAZOS.keys())}
 
 @router.post("/")
-async def create_event(body: EventCreate):
+async def create_event(body: EventCreate, user: CurrentUser = Depends(get_current_user)):
     payload = body.dict()
     payload["id"] = str(uuid.uuid4())
+    payload["user_id"] = user.user_id
     payload["completado"] = False
     payload["created_at"] = datetime.utcnow().isoformat()
     if not SUPABASE_URL: return {"evento": payload, "demo": True}
     async with httpx.AsyncClient() as c:
-        r = await c.post(f"{SUPABASE_URL}/rest/v1/calendario_eventos", json=payload, headers=sb_headers())
+        r = await c.post(f"{SUPABASE_URL}/rest/v1/calendario_eventos", json=payload, headers=sb_user_headers(user))
     if r.status_code not in (200,201): raise HTTPException(502, r.text)
     return {"evento": r.json()[0] if isinstance(r.json(),list) else payload}
 
 @router.patch("/{evento_id}")
-async def update_event(evento_id: str, body: EventUpdate):
+async def update_event(evento_id: str, body: EventUpdate, user: CurrentUser = Depends(get_current_user)):
     payload = {k:v for k,v in body.dict().items() if v is not None}
     if not SUPABASE_URL: return {"ok": True, "demo": True}
     async with httpx.AsyncClient() as c:
-        r = await c.patch(f"{SUPABASE_URL}/rest/v1/calendario_eventos?id=eq.{evento_id}", json=payload, headers=sb_headers())
+        r = await c.patch(f"{SUPABASE_URL}/rest/v1/calendario_eventos?id=eq.{evento_id}", json=payload, headers=sb_user_headers(user))
     if r.status_code not in (200,204): raise HTTPException(502, r.text)
     return {"ok": True}
 
 @router.delete("/{evento_id}")
-async def delete_event(evento_id: str):
+async def delete_event(evento_id: str, user: CurrentUser = Depends(get_current_user)):
     if not SUPABASE_URL: return {"ok": True, "demo": True}
     async with httpx.AsyncClient() as c:
-        r = await c.delete(f"{SUPABASE_URL}/rest/v1/calendario_eventos?id=eq.{evento_id}", headers=sb_headers())
+        r = await c.delete(f"{SUPABASE_URL}/rest/v1/calendario_eventos?id=eq.{evento_id}", headers=sb_user_headers(user))
     if r.status_code not in (200,204): raise HTTPException(502, r.text)
     return {"ok": True}
 

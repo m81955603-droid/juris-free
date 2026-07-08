@@ -8,24 +8,17 @@ import chardet
 import os
 import httpx
 import json
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
+
+from ..core.auth import get_current_user, sb_user_headers, CurrentUser
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY", "")
 GEMINI_KEY   = os.getenv("GEMINI_API_KEY", "")
-
-def sb_headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=representation",
-    }
 
 
 # ─────────────────────────────────────────────────────────────
@@ -76,11 +69,11 @@ class PlantillaCreate(BaseModel):
 
 
 @router.get("/plantillas")
-async def get_plantillas():
-    """Lista todas las plantillas personales del usuario."""
+async def get_plantillas(user: CurrentUser = Depends(get_current_user)):
+    """Lista las plantillas personales del usuario autenticado."""
     url = f"{SUPABASE_URL}/rest/v1/plantillas_usuario?select=*&order=created_at.desc"
     async with httpx.AsyncClient(timeout=20) as client:
-        r = await client.get(url, headers=sb_headers())
+        r = await client.get(url, headers=sb_user_headers(user))
     if r.status_code == 404:
         return []  # Tabla no existe aún
     if r.status_code != 200:
@@ -90,7 +83,7 @@ async def get_plantillas():
 
 
 @router.post("/plantillas/analizar")
-async def analizar_plantilla(file: UploadFile = File(...), nombre: str = "Mi plantilla"):
+async def analizar_plantilla(file: UploadFile = File(...), nombre: str = "Mi plantilla", user: CurrentUser = Depends(get_current_user)):
     """
     Sube un documento Word/PDF, extrae el texto y usa IA para crear
     una ficha de estilo: tono, estructura, variables y preferencias de formato.
@@ -177,6 +170,7 @@ Sin texto adicional fuera del JSON."""
     # Guardar en Supabase
     plantilla_data = {
         "nombre": nombre,
+        "user_id": user.user_id,
         "tipo_documento": ficha.get("tipo_documento", "general"),
         "texto_original": texto[:5000],
         "ficha_estilo": json.dumps(ficha, ensure_ascii=False),
@@ -190,7 +184,7 @@ Sin texto adicional fuera del JSON."""
         r_save = await client.post(
             f"{SUPABASE_URL}/rest/v1/plantillas_usuario",
             json=plantilla_data,
-            headers=sb_headers()
+            headers=sb_user_headers(user)
         )
 
     saved = r_save.json() if r_save.status_code in (200, 201) else None
@@ -206,11 +200,11 @@ Sin texto adicional fuera del JSON."""
 
 
 @router.delete("/plantillas/{id}")
-async def delete_plantilla(id: str):
+async def delete_plantilla(id: str, user: CurrentUser = Depends(get_current_user)):
     async with httpx.AsyncClient(timeout=20) as client:
         r = await client.delete(
             f"{SUPABASE_URL}/rest/v1/plantillas_usuario?id=eq.{id}",
-            headers={**sb_headers(), "Prefer": "return=minimal"}
+            headers={**sb_user_headers(user), "Prefer": "return=minimal"}
         )
     if r.status_code not in (200, 204):
         raise HTTPException(502, f"Error eliminando: {r.text}")

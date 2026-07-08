@@ -35,6 +35,16 @@ signInWithPassword(email: string, password: string): Observable<void> {
   );
 }
 
+  /**
+   * Devuelve el access_token (JWT) de la sesion actual, refrescandola
+   * si hace falta. Usado por el authInterceptor para autenticar
+   * cada request al backend.
+   */
+  async getAccessToken(): Promise<string | null> {
+    const { data: { session } } = await this.client.auth.getSession();
+    return session?.access_token ?? null;
+  }
+
   signInWithGoogle(): Observable<void> {
     return from(
       this.client.auth.signInWithOAuth({
