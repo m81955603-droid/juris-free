@@ -104,7 +104,7 @@
           <div class="result-actions">
             <button class="btn-sm" (click)="copyText()">{{ copiado() ? '✅ Copiado' : '📋 Copiar' }}</button>
             <button class="btn-sm" (click)="sendToAnalyzer()">🔍 Analizar</button>
-            <button class="btn-sm" (click)="downloadPDF()">⬇️ Guardar</button>
+            <button class="btn-sm" (click)="downloadPDF()">{{ guardado() ? '✅ Guardado' : '⬇️ Guardar' }}</button>
           </div>
         </div>
         <div class="ocr-text">

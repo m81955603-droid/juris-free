@@ -2,6 +2,7 @@ import { Component, signal, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { Router } from '@angular/router';
 
 type ScanMode = 'idle' | 'camera' | 'processing' | 'result';
 
@@ -14,6 +15,7 @@ type ScanMode = 'idle' | 'camera' | 'processing' | 'result';
 })
 export class ScannerComponent {
   private http = inject(HttpClient);
+  private router = inject(Router);
 
   @ViewChild('videoEl') videoEl!: ElementRef<HTMLVideoElement>;
   @ViewChild('canvasEl') canvasEl!: ElementRef<HTMLCanvasElement>;
@@ -158,16 +160,33 @@ Si un campo no se ve claramente, dejarlo vacío.`;
 
 
   copiado = signal(false);
+  guardado = signal(false);
 
   downloadPDF() {
     const img = this.capturedImage();
     if (!img) return;
-    const link = document.createElement('a');
-    link.href = img;
-    link.download = `escaneado_${Date.now()}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const [meta, base64] = img.split(',');
+      const mime = meta.match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const bytes = atob(base64);
+      const arr = new Uint8Array(bytes.length);
+      for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+      const blob = new Blob([arr], { type: mime });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `escaneado_${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+      this.guardado.set(true);
+      setTimeout(() => this.guardado.set(false), 2000);
+    } catch {
+      this.errorMsg.set('No se pudo guardar la imagen en este navegador.');
+    }
   }
 
   async copyText() {
@@ -193,10 +212,9 @@ Si un campo no se ve claramente, dejarlo vacío.`;
 
   sendToAnalyzer() {
     const text = this.ocrResult();
-    if (text) {
-      sessionStorage.setItem('scanner_ocr_text', text);
-      window.location.href = '/analyzer';
-    }
+    if (!text) return;
+    sessionStorage.setItem('scanner_ocr_text', text);
+    this.router.navigateByUrl('/analyzer');
   }
 
   reset() {
