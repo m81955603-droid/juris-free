@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import logging
 import os
 load_dotenv(dotenv_path=r"C:\proyectos\juris-free\backend\.env", override=True)
-from .routes import llm, embeddings, health, library, muestras, cases, calendar, clients, documents, search, ocr
+from .routes import llm, embeddings, health, library, muestras, cases, calendar, clients, documents, search, ocr, scanner_export
 logging.basicConfig(level=logging.INFO)
 
 def download_muestras():
@@ -54,6 +54,7 @@ async def lifespan(app: FastAPI):
     logging.info(f"Cerebras:   {'OK' if os.getenv('CEREBRAS_API_KEY') else 'FALTA'}")
     logging.info(f"OpenRouter: {'OK' if os.getenv('OPENROUTER_API_KEY') else 'FALTA'}")
     logging.info(f"SambaNova:  {'OK' if os.getenv('SAMBANOVA_API_KEY') else 'FALTA'}")
+    logging.info(f"Mistral OCR:{' OK' if os.getenv('MISTRAL_API_KEY') else ' FALTA (opcional, respaldo del scanner)'}")
     download_muestras()
     from .routes.muestras import build_index
     idx = build_index()
@@ -73,6 +74,7 @@ async def lifespan(app: FastAPI):
     logging.info(f"Cerebras:   {'OK' if os.getenv('CEREBRAS_API_KEY') else 'FALTA'}")
     logging.info(f"OpenRouter: {'OK' if os.getenv('OPENROUTER_API_KEY') else 'FALTA'}")
     logging.info(f"SambaNova:  {'OK' if os.getenv('SAMBANOVA_API_KEY') else 'FALTA'}")
+    logging.info(f"Mistral OCR:{' OK' if os.getenv('MISTRAL_API_KEY') else ' FALTA (opcional, respaldo del scanner)'}")
     download_muestras()
     from .routes.muestras import build_index
     idx = build_index()
@@ -86,6 +88,7 @@ async def lifespan(app: FastAPI):
     logging.info(f"Cerebras:   {'OK' if os.getenv('CEREBRAS_API_KEY') else 'FALTA'}")
     logging.info(f"OpenRouter: {'OK' if os.getenv('OPENROUTER_API_KEY') else 'FALTA'}")
     logging.info(f"SambaNova:  {'OK' if os.getenv('SAMBANOVA_API_KEY') else 'FALTA'}")
+    logging.info(f"Mistral OCR:{' OK' if os.getenv('MISTRAL_API_KEY') else ' FALTA (opcional, respaldo del scanner)'}")
     download_muestras()
     from .routes.muestras import build_index
     idx = build_index()
@@ -106,6 +109,7 @@ app.include_router(clients.router,  prefix="/api/v1",         tags=["Clientes"])
 app.include_router(muestras.router,  prefix="/api/v1/muestras",  tags=["Muestras"])
 app.include_router(documents.router, prefix="/api/v1/documents", tags=["Documentos"])
 app.include_router(ocr.router,      prefix="/api/v1/ocr",       tags=["OCR"])
+app.include_router(scanner_export.router, prefix="/api/v1/ocr", tags=["OCR Export"])
 app.include_router(search.router,    prefix="/api/v1",           tags=["Busqueda"])
 
 

@@ -88,15 +88,36 @@
   <!-- PROCESANDO -->
   <div class="processing-state" *ngIf="mode() === 'processing'">
     <div class="spinner"></div>
-    <p>Analizando imagen con Gemini Vision...</p>
+    <p>Analizando imagen con IA...</p>
     <p class="sub">Extrayendo texto del documento</p>
   </div>
 
-  <!-- RESULTADO DOCUMENTO -->
+  <!-- RESULTADO DOCUMENTO (multi-pagina) -->
   <div class="result-state" *ngIf="mode() === 'result' && scanType() === 'document'">
+
+    <!-- Tira de miniaturas si hay mas de 1 pagina -->
+    <div class="pages-strip" *ngIf="pages().length > 1">
+      <button
+        *ngFor="let p of pages(); let i = index"
+        class="page-thumb"
+        [class.active]="i === currentPageIndex()"
+        (click)="seleccionarPagina(i)">
+        <img [src]="p.image" [alt]="'Página ' + (i+1)"/>
+        <span class="thumb-num">{{ i + 1 }}</span>
+        <span class="thumb-remove" (click)="eliminarPagina(i); $event.stopPropagation()">✕</span>
+      </button>
+    </div>
+
     <div class="result-layout">
       <div class="image-preview">
-        <img [src]="capturedImage()" alt="Documento escaneado"/>
+        <img *ngIf="currentPage()" [src]="currentPage()!.image" alt="Documento escaneado"/>
+        <div class="page-label" *ngIf="pages().length > 1">Página {{ currentPageIndex() + 1 }} de {{ pages().length }}</div>
+        <div class="image-tools">
+          <button class="btn-sm" (click)="mejorarImagen()" [disabled]="mejorando()">
+            {{ mejorando() ? '⏳ Mejorando...' : '✨ Mejorar imagen' }}
+          </button>
+          <button class="btn-sm" (click)="abrirFirma()">✍️ Firmar</button>
+        </div>
       </div>
       <div class="ocr-result">
         <div class="result-header">
@@ -104,18 +125,53 @@
           <div class="result-actions">
             <button class="btn-sm" (click)="copyText()">{{ copiado() ? '✅ Copiado' : '📋 Copiar' }}</button>
             <button class="btn-sm" (click)="sendToAnalyzer()">🔍 Analizar</button>
-            <button class="btn-sm" (click)="downloadPDF()">{{ guardado() ? '✅ Guardado' : '⬇️ Guardar' }}</button>
+            <button class="btn-sm" (click)="downloadImage()">{{ guardado() ? '✅ Guardado' : '⬇️ Imagen' }}</button>
           </div>
         </div>
         <div class="ocr-text">
-          <pre *ngIf="ocrResult()">{{ ocrResult() }}</pre>
-          <div *ngIf="!ocrResult() && !isLoading()" class="no-text">
-            No se pudo extraer texto. Intenta con mejor iluminación.
+          <pre *ngIf="currentPage()?.texto">{{ currentPage()!.texto }}</pre>
+          <div *ngIf="!currentPage()?.texto" class="no-text">
+            No se pudo extraer texto de esta página. Intenta con mejor iluminación.
           </div>
+        </div>
+        <div class="proveedor-tag" *ngIf="currentPage()?.proveedor">
+          Procesado con {{ currentPage()!.proveedor }}
         </div>
       </div>
     </div>
-    <button class="btn-secondary" (click)="reset()">Nuevo escaneo</button>
+
+    <!-- Acciones generales del documento completo -->
+    <div class="doc-actions">
+      <button class="btn-secondary" (click)="agregarPagina()">➕ Agregar página</button>
+      <button class="btn-secondary" (click)="exportarPDF()" [disabled]="exportando() === 'pdf'">
+        {{ exportando() === 'pdf' ? '⏳ Generando PDF...' : '📄 Exportar PDF' }}
+      </button>
+      <button class="btn-secondary" (click)="exportarWord()" [disabled]="exportando() === 'word'">
+        {{ exportando() === 'word' ? '⏳ Generando Word...' : '📝 Exportar Word' }}
+      </button>
+      <button class="btn-secondary danger" (click)="reset()">Nuevo escaneo</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE FIRMA -->
+  <div class="signature-modal" *ngIf="mostrarFirma()">
+    <div class="signature-box">
+      <h3>Firma sobre la página {{ currentPageIndex() + 1 }}</h3>
+      <p class="signature-hint">Dibuja tu firma con el dedo o el mouse</p>
+      <canvas
+        #signatureCanvas
+        class="signature-canvas"
+        (pointerdown)="onFirmaStart($event)"
+        (pointermove)="onFirmaMove($event)"
+        (pointerup)="onFirmaEnd()"
+        (pointerleave)="onFirmaEnd()">
+      </canvas>
+      <div class="signature-actions">
+        <button class="btn-sm" (click)="limpiarFirma()">🗑 Limpiar</button>
+        <button class="btn-secondary" (click)="cerrarFirma()">Cancelar</button>
+        <button class="btn-primary" (click)="aplicarFirma()">Aplicar firma</button>
+      </div>
+    </div>
   </div>
 
   <!-- RESULTADO CARNET - paso intermedio (capturó anverso, falta reverso) -->

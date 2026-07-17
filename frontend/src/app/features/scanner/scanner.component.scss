@@ -356,3 +356,139 @@
 }
 
 .carnet-actions { margin-top: 1rem; }
+
+/* MULTI-PAGINA: tira de miniaturas */
+.pages-strip {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.5rem 0 1rem;
+  width: 100%;
+}
+
+.page-thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 64px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #e2e8f0;
+  cursor: pointer;
+  padding: 0;
+  background: white;
+
+  &.active { border-color: #3b82f6; }
+
+  img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .thumb-num {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    font-size: 0.65rem;
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  .thumb-remove {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(220, 38, 38, 0.85);
+    color: white;
+    font-size: 0.65rem;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+}
+
+.page-label {
+  text-align: center;
+  color: #64748b;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+.image-tools {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.proveedor-tag {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-align: right;
+}
+
+/* Acciones generales del documento */
+.doc-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 1.5rem;
+
+  .btn-secondary.danger {
+    background: #fef2f2;
+    color: #dc2626;
+    &:hover { background: #fee2e2; }
+  }
+
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+/* MODAL DE FIRMA */
+.signature-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.signature-box {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 480px;
+
+  h3 { font-weight: 700; color: #1e293b; margin-bottom: 0.25rem; }
+  .signature-hint { color: #94a3b8; font-size: 0.8rem; margin-bottom: 0.75rem; }
+}
+
+.signature-canvas {
+  width: 100%;
+  height: 200px;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 10px;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.signature-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
