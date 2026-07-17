@@ -16,6 +16,7 @@ export const routes: Routes = [
   { path: 'settings',     canActivate: [authGuard], loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent) },
   { path: 'search',       canActivate: [authGuard], loadComponent: () => import('./features/global-search/global-search.component').then(m => m.GlobalSearchComponent) },
   { path: 'scanner', canActivate: [authGuard], loadComponent: () => import('./features/scanner/scanner.component').then(m => m.ScannerComponent) },
+  { path: 'converter', canActivate: [authGuard], loadComponent: () => import('./features/converter/converter.component').then(m => m.ConverterComponent) },
   { path: 'auth/callback', loadComponent: () => import('./core/auth-callback/auth-callback.component').then(m => m.AuthCallbackComponent) },
   { path: '**', redirectTo: '/login' }
 ];
