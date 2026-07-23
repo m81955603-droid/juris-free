@@ -209,6 +209,41 @@ export class ScannerComponent {
     }
   }
 
+  exportandoCarnet = signal(false);
+
+  exportarCarnetPDF() {
+    const front = this.carnetFront();
+    const back = this.carnetBack();
+    if (!front) return;
+
+    this.exportandoCarnet.set(true);
+    this.errorMsg.set(null);
+
+    const body = {
+      front_base64: front.split(',')[1],
+      back_base64: back ? back.split(',')[1] : null,
+      mime_type: 'image/jpeg'
+    };
+
+    this.http.post(`${this.apiUrl}/export-carnet-pdf`, body, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `carnet_para_imprimir_${Date.now()}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        this.exportandoCarnet.set(false);
+      },
+      error: () => {
+        this.errorMsg.set('No se pudo generar el PDF del carnet. Intenta nuevamente.');
+        this.exportandoCarnet.set(false);
+      }
+    });
+  }
+
   // ── COPIAR / GUARDAR (pagina actual) ───────────────
 
   async copyText() {

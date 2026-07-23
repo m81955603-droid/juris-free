@@ -210,6 +210,9 @@
         </div>
         <div class="carnet-actions">
           <button class="btn-sm" (click)="copyCarnetData()">📋 Copiar datos</button>
+          <button class="btn-sm" (click)="exportarCarnetPDF()" [disabled]="exportandoCarnet()">
+            {{ exportandoCarnet() ? '⏳ Generando...' : '🖨️ PDF para imprimir' }}
+          </button>
         </div>
       </div>
     </div>
