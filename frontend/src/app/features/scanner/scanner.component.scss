@@ -158,7 +158,7 @@
   video {
     width: 100%;
     display: block;
-    max-height: 70vh;
+    max-height: 78vh;
     object-fit: cover;
   }
 }
@@ -174,11 +174,23 @@
 }
 
 .scan-frame {
-  width: 75%;
-  aspect-ratio: 1.41/1;
   border: 2.5px solid rgba(59, 130, 246, 0.8);
   border-radius: 8px;
   box-shadow: 0 0 0 9999px rgba(0,0,0,0.35);
+}
+
+/* Carnet/tarjeta ID: proporcion real ISO/IEC 7810 (85.6 x 53.98 mm) */
+.scan-frame.frame-carnet {
+  width: 82%;
+  aspect-ratio: 1.586 / 1;
+}
+
+/* Documento: proporcion tipo hoja carta/oficio (vertical, ocupa casi toda la altura) */
+.scan-frame.frame-document {
+  height: 88%;
+  width: auto;
+  aspect-ratio: 0.7 / 1;
+  max-width: 92%;
 }
 
 .scan-hint {

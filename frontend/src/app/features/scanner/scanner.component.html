@@ -69,7 +69,7 @@
       <video #videoEl autoplay playsinline muted></video>
       <canvas #canvasEl style="display:none"></canvas>
       <div class="scan-overlay">
-        <div class="scan-frame"></div>
+        <div class="scan-frame" [class.frame-carnet]="scanType() === 'carnet'" [class.frame-document]="scanType() === 'document'"></div>
         <p class="scan-hint">
           {{ scanType() === 'carnet' && carnetStep() === 'front' ? 'Encuadra el ANVERSO del carnet' :
              scanType() === 'carnet' && carnetStep() === 'back' ? 'Encuadra el REVERSO del carnet' :
