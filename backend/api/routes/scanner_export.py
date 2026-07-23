@@ -9,6 +9,7 @@ los datos que el navegador ya tiene (imagenes/texto de la sesion actual).
 import base64
 import io
 import logging
+from datetime import datetime
 from typing import List, Optional
 
 import fitz  # PyMuPDF
@@ -119,12 +120,15 @@ CARD_W = 85.6 * mm
 CARD_H = 53.98 * mm
 
 
+CARD_RADIUS = 3 * mm  # esquinas redondeadas, como una tarjeta ID real
+
+
 def _dibujar_marcas_recorte(c: canvas.Canvas, x: float, y: float, w: float, h: float):
     """Dibuja pequenas lineas guia en las 4 esquinas para recortar con precision."""
     largo = 5 * mm
-    gap = 2 * mm
-    c.setLineWidth(0.4)
-    c.setStrokeColor(colors.grey)
+    gap = 2.5 * mm
+    c.setLineWidth(0.5)
+    c.setStrokeColor(colors.HexColor("#94a3b8"))
 
     esquinas = [
         (x, y, -1, -1), (x + w, y, 1, -1),
@@ -135,12 +139,48 @@ def _dibujar_marcas_recorte(c: canvas.Canvas, x: float, y: float, w: float, h: f
         c.line(cx, cy + dy*gap, cx, cy + dy*(gap+largo))
 
 
+def _dibujar_tarjeta(c: canvas.Canvas, img_bytes: bytes, x: float, y: float, w: float, h: float, etiqueta: str, page_w: float):
+    """
+    Dibuja una imagen recortada a un rectangulo con esquinas redondeadas
+    (como una tarjeta ID real), con borde sutil, sombra suave y etiqueta.
+    """
+    # Sombra suave (rectangulo gris desplazado, debajo de la tarjeta)
+    c.saveState()
+    c.setFillColor(colors.HexColor("#e2e8f0"))
+    c.roundRect(x + 0.6*mm, y - 0.6*mm, w, h, CARD_RADIUS, fill=1, stroke=0)
+    c.restoreState()
+
+    # Imagen recortada a esquinas redondeadas
+    c.saveState()
+    path = c.beginPath()
+    path.roundRect(x, y, w, h, CARD_RADIUS)
+    c.clipPath(path, stroke=0, fill=0)
+    img = ImageReader(io.BytesIO(img_bytes))
+    c.drawImage(img, x, y, width=w, height=h, preserveAspectRatio=True, anchor='c', mask='auto')
+    c.restoreState()
+
+    # Borde sutil sobre la tarjeta
+    c.saveState()
+    c.setStrokeColor(colors.HexColor("#cbd5e1"))
+    c.setLineWidth(0.6)
+    c.roundRect(x, y, w, h, CARD_RADIUS, fill=0, stroke=1)
+    c.restoreState()
+
+    # Etiqueta (ANVERSO / REVERSO)
+    c.setFont("Helvetica-Bold", 7.5)
+    c.setFillColor(colors.HexColor("#64748b"))
+    c.drawCentredString(page_w/2, y + h + 5*mm, etiqueta)
+
+    _dibujar_marcas_recorte(c, x, y, w, h)
+
+
 @router.post("/export-carnet-pdf")
 async def export_carnet_pdf(body: CarnetPdfRequest):
     """
     Genera una hoja A4 con el anverso y reverso del carnet en su
     TAMANO REAL (85.6 x 53.98 mm, igual a una cedula fisica), con
-    lineas guia para recortar. Lista para imprimir y laminar.
+    esquinas redondeadas, sombra suave y lineas guia para recortar.
+    Lista para imprimir y laminar.
     """
     try:
         front_bytes = base64.b64decode(body.front_base64)
@@ -151,38 +191,33 @@ async def export_carnet_pdf(body: CarnetPdfRequest):
         page_w, page_h = A4
 
         x = (page_w - CARD_W) / 2
-        y_front = page_h - 70*mm - CARD_H
-        y_back = 50*mm
+        y_front = page_h - 65*mm - CARD_H
+        y_back = 55*mm
 
-        # Titulo de la hoja
-        c.setFont("Helvetica-Bold", 11)
-        c.setFillColor(colors.HexColor("#1e293b"))
-        c.drawCentredString(page_w/2, page_h - 25*mm, "Documento de Identidad — Listo para imprimir")
-
-        # ANVERSO
+        # ── Encabezado con marca ──
+        c.setFillColor(colors.HexColor("#1e3a5f"))
+        c.roundRect(0, page_h - 18*mm, page_w, 18*mm, 0, fill=1, stroke=0)
+        c.setFont("Helvetica-Bold", 13)
+        c.setFillColor(colors.white)
+        c.drawCentredString(page_w/2, page_h - 11*mm, "MAJA JURÍDICO")
         c.setFont("Helvetica", 8)
-        c.setFillColor(colors.grey)
-        c.drawCentredString(page_w/2, y_front + CARD_H + 5*mm, "ANVERSO")
-        front_img = ImageReader(io.BytesIO(front_bytes))
-        c.drawImage(front_img, x, y_front, width=CARD_W, height=CARD_H,
-                    preserveAspectRatio=False, mask='auto')
-        _dibujar_marcas_recorte(c, x, y_front, CARD_W, CARD_H)
+        c.setFillColor(colors.HexColor("#cbd5e1"))
+        c.drawCentredString(page_w/2, page_h - 15.5*mm, "Documento de identidad — listo para imprimir")
 
-        # REVERSO
+        # ── Tarjetas ──
+        _dibujar_tarjeta(c, front_bytes, x, y_front, CARD_W, CARD_H, "ANVERSO", page_w)
         if back_bytes:
-            c.drawCentredString(page_w/2, y_back + CARD_H + 5*mm, "REVERSO")
-            back_img = ImageReader(io.BytesIO(back_bytes))
-            c.drawImage(back_img, x, y_back, width=CARD_W, height=CARD_H,
-                        preserveAspectRatio=False, mask='auto')
-            _dibujar_marcas_recorte(c, x, y_back, CARD_W, CARD_H)
+            _dibujar_tarjeta(c, back_bytes, x, y_back, CARD_W, CARD_H, "REVERSO", page_w)
 
-        # Nota al pie
+        # ── Pie de pagina ──
+        fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
         c.setFont("Helvetica", 6.5)
-        c.setFillColor(colors.grey)
+        c.setFillColor(colors.HexColor("#94a3b8"))
         c.drawCentredString(
-            page_w/2, 15*mm,
-            "Tamaño real de tarjeta ID (85.6 x 53.98 mm) — Recortar por las líneas guía de las esquinas"
+            page_w/2, 14*mm,
+            "Tamaño real de tarjeta ID (85.6 × 53.98 mm) — Recortar por las líneas guía de las esquinas"
         )
+        c.drawCentredString(page_w/2, 10*mm, f"Generado el {fecha}")
 
         c.showPage()
         c.save()

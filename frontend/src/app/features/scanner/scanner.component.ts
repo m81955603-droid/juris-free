@@ -78,13 +78,22 @@ export class ScannerComponent {
     }
   }
 
+  // Debe coincidir EXACTO con .frame-carnet en scanner.component.scss
+  private readonly FRAME_CARNET_WIDTH_PCT = 0.82;
+  private readonly FRAME_CARNET_RATIO = 1.586; // ancho/alto real de una tarjeta ID
+
   capture() {
     const video = this.videoEl.nativeElement;
     const canvas = this.canvasEl.nativeElement;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d')!;
-    ctx.drawImage(video, 0, 0);
+
+    if (this.scanType() === 'carnet') {
+      this.capturarRecortadoAlMarco(video, canvas);
+    } else {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d')!.drawImage(video, 0, 0);
+    }
+
     const imageData = canvas.toDataURL('image/jpeg', 0.92);
     this.stopStream();
 
@@ -99,6 +108,45 @@ export class ScannerComponent {
     } else {
       this.processDocumentPage(imageData);
     }
+  }
+
+  /**
+   * Recorta la captura a la zona exacta del marco guia (azul) que el usuario
+   * usa para alinear la tarjeta, para excluir el fondo de la foto.
+   * El video se muestra con object-fit:cover, asi que primero calculamos que
+   * porcion del video nativo es realmente visible en pantalla, y luego
+   * ubicamos el marco (que esta centrado, con el ancho/proporcion definidos
+   * en el CSS) dentro de esa porcion visible.
+   */
+  private capturarRecortadoAlMarco(video: HTMLVideoElement, canvas: HTMLCanvasElement) {
+    const dispW = video.clientWidth;
+    const dispH = video.clientHeight;
+    const natW = video.videoWidth;
+    const natH = video.videoHeight;
+
+    // Paso 1: que region del video nativo es visible (object-fit: cover)
+    const scale = Math.max(dispW / natW, dispH / natH);
+    const visW = dispW / scale;
+    const visH = dispH / scale;
+    const x0 = (natW - visW) / 2;
+    const y0 = (natH - visH) / 2;
+
+    // Paso 2: posicion del marco guia dentro del area mostrada (coincide con el CSS)
+    const frameWDisp = dispW * this.FRAME_CARNET_WIDTH_PCT;
+    const frameHDisp = frameWDisp / this.FRAME_CARNET_RATIO;
+    const frameXDisp = (dispW - frameWDisp) / 2;
+    const frameYDisp = (dispH - frameHDisp) / 2;
+
+    // Paso 3: convertir esa posicion a coordenadas del video nativo
+    const cropX = x0 + (frameXDisp / dispW) * visW;
+    const cropY = y0 + (frameYDisp / dispH) * visH;
+    const cropW = (frameWDisp / dispW) * visW;
+    const cropH = (frameHDisp / dispH) * visH;
+
+    canvas.width = cropW;
+    canvas.height = cropH;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
   }
 
   /** Vuelve a abrir la camara para escanear una pagina adicional del mismo documento. */
