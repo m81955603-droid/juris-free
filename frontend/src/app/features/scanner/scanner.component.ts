@@ -94,6 +94,7 @@ export class ScannerComponent {
       canvas.getContext('2d')!.drawImage(video, 0, 0);
     }
 
+    this.autoRealzarImagen(canvas);
     const imageData = canvas.toDataURL('image/jpeg', 0.92);
     this.stopStream();
 
@@ -147,6 +148,63 @@ export class ScannerComponent {
     canvas.height = cropH;
     const ctx = canvas.getContext('2d')!;
     ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+  }
+
+  /**
+   * Realce automatico tipo "Auto" de apps de escaneo: estira el contraste
+   * de cada canal de color usando percentiles (auto-niveles), para que el
+   * fondo (papel/tarjeta) se vea blanco/limpio y el texto quede mas nitido,
+   * en vez de la foto "cruda" con sombras y tonos grises.
+   */
+  private autoRealzarImagen(canvas: HTMLCanvasElement) {
+    const ctx = canvas.getContext('2d')!;
+    const w = canvas.width, h = canvas.height;
+    if (w === 0 || h === 0) return;
+
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    const totalPixeles = data.length / 4;
+
+    const histR = new Uint32Array(256);
+    const histG = new Uint32Array(256);
+    const histB = new Uint32Array(256);
+    for (let i = 0; i < data.length; i += 4) {
+      histR[data[i]]++;
+      histG[data[i + 1]]++;
+      histB[data[i + 2]]++;
+    }
+
+    const percentil = (hist: Uint32Array, p: number): number => {
+      const objetivo = totalPixeles * p;
+      let acumulado = 0;
+      for (let v = 0; v < 256; v++) {
+        acumulado += hist[v];
+        if (acumulado >= objetivo) return v;
+      }
+      return 255;
+    };
+
+    const construirLUT = (low: number, high: number): Uint8ClampedArray => {
+      const lut = new Uint8ClampedArray(256);
+      const rango = Math.max(high - low, 1);
+      for (let v = 0; v < 256; v++) {
+        lut[v] = Math.round(((v - low) / rango) * 255);
+      }
+      return lut;
+    };
+
+    // Recorta el 0.6% de pixeles mas oscuros/claros como "outliers" (ruido/sombras)
+    const lutR = construirLUT(percentil(histR, 0.006), percentil(histR, 0.994));
+    const lutG = construirLUT(percentil(histG, 0.006), percentil(histG, 0.994));
+    const lutB = construirLUT(percentil(histB, 0.006), percentil(histB, 0.994));
+
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = lutR[data[i]];
+      data[i + 1] = lutG[data[i + 1]];
+      data[i + 2] = lutB[data[i + 2]];
+    }
+
+    ctx.putImageData(imgData, 0, 0);
   }
 
   /** Vuelve a abrir la camara para escanear una pagina adicional del mismo documento. */
@@ -427,9 +485,8 @@ export class ScannerComponent {
       canvas.width = img.width;
       canvas.height = img.height;
       const ctx = canvas.getContext('2d')!;
-      // Aumenta contraste y brillo, quita saturacion para look "escaneado"
-      (ctx as any).filter = 'contrast(1.35) brightness(1.12) saturate(0.85)';
       ctx.drawImage(img, 0, 0);
+      this.autoRealzarImagen(canvas);
       const mejorada = canvas.toDataURL('image/jpeg', 0.92);
 
       this.pages.update(pages => pages.map((p, i) =>
