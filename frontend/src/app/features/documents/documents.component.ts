@@ -247,16 +247,56 @@ Genera el documento completo, formal y listo para usar en Bolivia.`;
 
   renderMarkdown(content: string): string {
     if (!content) return '';
-    return content
-      .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-      .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+
+    const lineas = content.split('\n');
+    const html: string[] = [];
+    let dentroDeLista = false;
+    let parrafoActual: string[] = [];
+
+    const cerrarParrafo = () => {
+      if (parrafoActual.length) {
+        html.push(`<p>${parrafoActual.join(' ')}</p>`);
+        parrafoActual = [];
+      }
+    };
+    const cerrarLista = () => {
+      if (dentroDeLista) { html.push('</ul>'); dentroDeLista = false; }
+    };
+    const inline = (texto: string) => texto
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/`(.+?)`/g, '<code>$1</code>')
-      .replace(/^- (.+)$/gm, '<li>$1</li>')
-      .replace(/(<li>.*<\/li>\n?)+/gs, '<ul>$&</ul>')
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/\n/g, '<br>');
+      .replace(/`(.+?)`/g, '<code>$1</code>');
+
+    for (const raw of lineas) {
+      const linea = raw.trim();
+
+      if (!linea) { cerrarParrafo(); cerrarLista(); continue; }
+
+      if (linea.startsWith('### ')) {
+        cerrarParrafo(); cerrarLista();
+        html.push(`<h4>${inline(linea.slice(4))}</h4>`);
+      } else if (linea.startsWith('## ')) {
+        cerrarParrafo(); cerrarLista();
+        html.push(`<h3>${inline(linea.slice(3))}</h3>`);
+      } else if (linea.startsWith('# ')) {
+        cerrarParrafo(); cerrarLista();
+        html.push(`<h2>${inline(linea.slice(2))}</h2>`);
+      } else if (linea.startsWith('- ') || linea.startsWith('* ')) {
+        cerrarParrafo();
+        if (!dentroDeLista) { html.push('<ul>'); dentroDeLista = true; }
+        html.push(`<li>${inline(linea.slice(2))}</li>`);
+      } else if (/^---+$/.test(linea)) {
+        cerrarParrafo(); cerrarLista();
+        html.push('<hr>');
+      } else {
+        cerrarLista();
+        parrafoActual.push(inline(linea));
+      }
+    }
+    cerrarParrafo();
+    cerrarLista();
+
+    return html.join('\n');
   }
 
   backToTemplates(): void { this.step.set('select'); this.selectedTemplate.set(null); }
