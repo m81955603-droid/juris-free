@@ -10,6 +10,13 @@ Ademas, verifica el estado de aprobacion del abogado (usuarios_perfil):
 - pendiente  -> acceso de prueba por 1 hora desde el registro, luego bloqueado
 - rechazado  -> bloqueado siempre
 
+SUPER ADMIN: a diferencia de "aprobado/rechazado" (que se guarda en la
+base de datos y se puede editar desde botones de la app), quien es
+super-admin se decide SOLO por la variable de entorno SUPER_ADMIN_EMAILS
+configurada en Render. Nadie puede volverse super-admin desde la app,
+ni aunque manipule la base de datos o el navegador — hay que tener
+acceso al panel de Render para cambiar esa lista.
+
 Por que se valida el JWT llamando a Supabase en vez de verificarlo local:
 el proyecto usa el sistema nuevo de "JWT Signing Keys" (rotacion de llaves,
 posiblemente asimetricas). Pedirle a Supabase que verifique el token evita
@@ -34,23 +41,37 @@ SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 
 MINUTOS_PRUEBA_PENDIENTE = 60  # 1 hora de acceso mientras se aprueba la cuenta
 
+# Lista fija de super-admins, configurada SOLO en Render (Environment
+# Variables), nunca editable desde la app. Formato: emails separados
+# por coma. Ej: "m81955603@gmail.com,otro@gmail.com"
+_SUPER_ADMIN_EMAILS = {
+    e.strip().lower()
+    for e in os.getenv("SUPER_ADMIN_EMAILS", "").split(",")
+    if e.strip()
+}
+
+
+def es_email_super_admin(email: str | None) -> bool:
+    """Util para otros modulos (ej. admin.py) que necesiten marcar filas
+    de la lista de usuarios segun quien es realmente super-admin."""
+    return bool(email) and email.strip().lower() in _SUPER_ADMIN_EMAILS
+
 
 class CurrentUser:
     """Representa al abogado autenticado en la request actual."""
     def __init__(self, user_id: str, token: str, email: str | None = None,
-                 rol: str = "abogado", estado: str = "pendiente",
+                 estado: str = "pendiente",
                  en_prueba: bool = False, minutos_restantes: int = 0):
         self.user_id = user_id
         self.token = token
         self.email = email
-        self.rol = rol
         self.estado = estado
         self.en_prueba = en_prueba
         self.minutos_restantes = minutos_restantes
 
     @property
-    def es_admin(self) -> bool:
-        return self.rol == "admin"
+    def es_super_admin(self) -> bool:
+        return es_email_super_admin(self.email)
 
 
 async def get_current_user(authorization: str = Header(None)) -> CurrentUser:
@@ -61,6 +82,10 @@ async def get_current_user(authorization: str = Header(None)) -> CurrentUser:
     2. Busca (o crea si falta) el perfil del usuario en usuarios_perfil.
     3. Bloquea el acceso si esta rechazado, o si esta pendiente y ya
        se le acabo la hora de prueba.
+
+    NOTA: los super-admins (ver SUPER_ADMIN_EMAILS) SIEMPRE pasan sin
+    restricciones de estado/prueba, para que nunca se puedan quedar
+    fuera del sistema por error.
     """
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "Falta el token de autenticacion. Inicia sesion nuevamente.")
@@ -86,6 +111,8 @@ async def get_current_user(authorization: str = Header(None)) -> CurrentUser:
         if not user_id:
             raise HTTPException(401, "Token sin usuario asociado.")
 
+        es_super_admin = es_email_super_admin(email)
+
         headers = {
             "apikey": SUPABASE_ANON_KEY,
             "Authorization": f"Bearer {token}",
@@ -109,16 +136,20 @@ async def get_current_user(authorization: str = Header(None)) -> CurrentUser:
                 headers={**headers, "Prefer": "return=representation"}
             )
             perfiles = r_crear.json() if r_crear.status_code in (200, 201) else [{
-                "rol": "abogado", "estado": "pendiente", "fecha_registro": datetime.now(timezone.utc).isoformat()
+                "estado": "pendiente", "fecha_registro": datetime.now(timezone.utc).isoformat()
             }]
 
     perfil = perfiles[0]
-    rol = perfil.get("rol", "abogado")
     estado = perfil.get("estado", "pendiente")
     fecha_registro_str = perfil.get("fecha_registro")
 
     en_prueba = False
     minutos_restantes = 0
+
+    if es_super_admin:
+        # El super-admin nunca queda bloqueado, pase lo que pase en la tabla.
+        return CurrentUser(user_id=user_id, token=token, email=email,
+                            estado="aprobado", en_prueba=False, minutos_restantes=0)
 
     if estado == "rechazado":
         raise HTTPException(403, "Tu cuenta fue rechazada. Contacta al administrador del sistema.")
@@ -141,7 +172,7 @@ async def get_current_user(authorization: str = Header(None)) -> CurrentUser:
 
     return CurrentUser(
         user_id=user_id, token=token, email=email,
-        rol=rol, estado=estado, en_prueba=en_prueba, minutos_restantes=minutos_restantes
+        estado=estado, en_prueba=en_prueba, minutos_restantes=minutos_restantes
     )
 
 

@@ -1,13 +1,19 @@
 """
 JURIS-FREE Bolivia — Panel de administracion
-Permite al/los administrador(es) ver, aprobar o rechazar el acceso de
-nuevos abogados al sistema.
+Permite al super-admin ver, aprobar, rechazar o suspender el acceso de
+abogados al sistema.
+
+Quien es super-admin se decide UNICAMENTE por la variable de entorno
+SUPER_ADMIN_EMAILS (ver core/auth.py) — no existe forma de ascender a
+alguien a admin desde la app. Si en el futuro quieres agregar a otra
+persona con estos poderes, se hace agregando su email a esa variable
+de entorno en Render, nunca desde un boton de la interfaz.
 
 Estas rutas SI usan la Service Key (a diferencia del resto del backend),
-porque un admin necesita ver la lista de TODOS los usuarios, algo que
-RLS normal no permite. Por seguridad, cada endpoint primero confirma
-que quien llama es admin (usando su propio token, respetando RLS) antes
-de usar la service key para la operacion real.
+porque el super-admin necesita ver la lista de TODOS los usuarios, algo
+que RLS normal no permite. Por seguridad, cada endpoint primero confirma
+que quien llama es super-admin (usando su propio token validado, ver
+get_current_user) antes de usar la service key para la operacion real.
 """
 import os
 import logging
@@ -16,7 +22,7 @@ from datetime import datetime, timezone
 import httpx
 from fastapi import APIRouter, HTTPException, Depends
 
-from ..core.auth import get_current_user, CurrentUser
+from ..core.auth import get_current_user, CurrentUser, es_email_super_admin
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -34,15 +40,15 @@ def _admin_headers() -> dict:
     }
 
 
-def _exigir_admin(user: CurrentUser):
-    if not user.es_admin:
-        raise HTTPException(403, "Solo un administrador puede realizar esta acción.")
+def _exigir_super_admin(user: CurrentUser):
+    if not user.es_super_admin:
+        raise HTTPException(403, "Solo el administrador del sistema puede realizar esta acción.")
 
 
 @router.get("/usuarios")
 async def listar_usuarios(user: CurrentUser = Depends(get_current_user)):
-    """Lista todos los abogados registrados (solo admin)."""
-    _exigir_admin(user)
+    """Lista todos los abogados registrados (solo super-admin)."""
+    _exigir_super_admin(user)
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get(
             f"{SUPABASE_URL}/rest/v1/usuarios_perfil?select=*&order=fecha_registro.desc",
@@ -50,12 +56,19 @@ async def listar_usuarios(user: CurrentUser = Depends(get_current_user)):
         )
     if r.status_code != 200:
         raise HTTPException(502, f"Error consultando usuarios: {r.text}")
-    return r.json()
+
+    usuarios = r.json()
+    # Sobreescribimos cualquier columna 'rol' vieja de la base de datos:
+    # lo unico que realmente importa es si el email esta en la lista
+    # fija de super-admins de Render.
+    for u in usuarios:
+        u["rol"] = "admin" if es_email_super_admin(u.get("email")) else "abogado"
+    return usuarios
 
 
 @router.post("/usuarios/{usuario_id}/aprobar")
 async def aprobar_usuario(usuario_id: str, user: CurrentUser = Depends(get_current_user)):
-    _exigir_admin(user)
+    _exigir_super_admin(user)
     payload = {
         "estado": "aprobado",
         "fecha_aprobacion": datetime.now(timezone.utc).isoformat(),
@@ -74,7 +87,7 @@ async def aprobar_usuario(usuario_id: str, user: CurrentUser = Depends(get_curre
 
 @router.post("/usuarios/{usuario_id}/rechazar")
 async def rechazar_usuario(usuario_id: str, user: CurrentUser = Depends(get_current_user)):
-    _exigir_admin(user)
+    _exigir_super_admin(user)
     payload = {"estado": "rechazado"}
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.patch(
@@ -87,27 +100,11 @@ async def rechazar_usuario(usuario_id: str, user: CurrentUser = Depends(get_curr
     return {"ok": True}
 
 
-@router.post("/usuarios/{usuario_id}/hacer-admin")
-async def hacer_admin(usuario_id: str, user: CurrentUser = Depends(get_current_user)):
-    """Asciende a otro abogado a administrador (solo un admin puede hacerlo)."""
-    _exigir_admin(user)
-    payload = {"rol": "admin"}
-    async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.patch(
-            f"{SUPABASE_URL}/rest/v1/usuarios_perfil?id=eq.{usuario_id}",
-            json=payload,
-            headers=_admin_headers()
-        )
-    if r.status_code not in (200, 204):
-        raise HTTPException(502, f"Error actualizando rol: {r.text}")
-    return {"ok": True}
-
-
 @router.get("/mi-estado")
 async def mi_estado(user: CurrentUser = Depends(get_current_user)):
     """El propio abogado consulta su estado de aprobacion (para la pantalla de espera)."""
     return {
-        "rol": user.rol,
+        "rol": "admin" if user.es_super_admin else "abogado",
         "estado": user.estado,
         "en_prueba": user.en_prueba,
         "minutos_restantes": user.minutos_restantes,

@@ -89,15 +89,6 @@ export class AdminComponent implements OnInit {
     this.rechazar(usuario);
   }
 
-  hacerAdmin(usuario: UsuarioPerfil) {
-    if (!confirm(`¿Convertir a ${usuario.email} en administrador? Podrá aprobar/rechazar otras cuentas.`)) return;
-    this.procesando.set(usuario.id);
-    this.http.post(`${this.apiUrl}/usuarios/${usuario.id}/hacer-admin`, {}).subscribe({
-      next: () => { this.cargar(); this.procesando.set(null); },
-      error: () => { this.errorMsg.set('No se pudo actualizar el rol.'); this.procesando.set(null); }
-    });
-  }
-
   formatearFecha(iso: string): string {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
