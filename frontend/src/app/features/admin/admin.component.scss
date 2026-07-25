@@ -174,7 +174,7 @@
   &.rechazado { background: rgba(192,57,43,.1); color: var(--red); }
 }
 
-.btn-approve, .btn-reject, .btn-admin {
+.btn-approve, .btn-reject, .btn-suspend, .btn-admin {
   border: none;
   border-radius: 8px;
   padding: 7px 14px;
@@ -189,6 +189,7 @@
 
 .btn-approve { background: var(--green); color: white; }
 .btn-reject  { background: var(--red); color: white; }
+.btn-suspend { background: #d97706; color: white; }
 .btn-admin   { background: var(--surf-2); color: var(--txt-2); border: 1px solid var(--bord); }
 
 @media (max-width: 640px) {

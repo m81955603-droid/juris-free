@@ -3,7 +3,7 @@
   <header class="page-header">
     <div>
       <h1 class="page-title">Panel de Administración</h1>
-      <p class="page-sub">Aprueba o rechaza el acceso de nuevos abogados al sistema</p>
+      <p class="page-sub">Aprueba, rechaza o suspende el acceso de los abogados al sistema</p>
     </div>
     <div class="pendientes-badge" *ngIf="pendientesCount() > 0">
       {{ pendientesCount() }} pendiente{{ pendientesCount() === 1 ? '' : 's' }}
@@ -47,8 +47,13 @@
               ✓ Aprobar
             </button>
           </ng-container>
-          <ng-container *ngIf="u.estado !== 'rechazado'">
-            <button class="btn-reject" (click)="rechazar(u)" [disabled]="procesando() === u.id">
+          <ng-container *ngIf="u.estado === 'aprobado'">
+            <button class="btn-suspend" (click)="suspender(u)" [disabled]="procesando() === u.id" title="Le quita el acceso a alguien que ya estaba usando el sistema">
+              ⛔ Suspender
+            </button>
+          </ng-container>
+          <ng-container *ngIf="u.estado !== 'aprobado' && u.estado !== 'rechazado'">
+            <button class="btn-reject" (click)="rechazar(u)" [disabled]="procesando() === u.id" title="Nunca tuvo acceso, se le niega ahora">
               ✕ Rechazar
             </button>
           </ng-container>

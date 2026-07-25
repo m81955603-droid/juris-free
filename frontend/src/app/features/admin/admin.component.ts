@@ -77,6 +77,18 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  suspender(usuario: UsuarioPerfil) {
+    // Misma accion en el backend que "rechazar" (marca estado='rechazado'),
+    // pero aqui pedimos confirmacion porque corta el acceso a alguien que
+    // YA estaba usando el sistema activamente, a diferencia de rechazar
+    // una solicitud nueva que nunca tuvo acceso.
+    const confirmado = confirm(
+      `¿Seguro que quieres suspender a ${usuario.nombre || usuario.email}? Perderá el acceso al sistema de inmediato.`
+    );
+    if (!confirmado) return;
+    this.rechazar(usuario);
+  }
+
   hacerAdmin(usuario: UsuarioPerfil) {
     if (!confirm(`¿Convertir a ${usuario.email} en administrador? Podrá aprobar/rechazar otras cuentas.`)) return;
     this.procesando.set(usuario.id);
