@@ -5,10 +5,51 @@
       <h1 class="page-title">Panel de Administración</h1>
       <p class="page-sub">Aprueba, rechaza o suspende el acceso de los abogados al sistema</p>
     </div>
-    <div class="pendientes-badge" *ngIf="pendientesCount() > 0">
-      {{ pendientesCount() }} pendiente{{ pendientesCount() === 1 ? '' : 's' }}
+    <div class="header-actions">
+      <div class="pendientes-badge" *ngIf="pendientesCount() > 0">
+        {{ pendientesCount() }} pendiente{{ pendientesCount() === 1 ? '' : 's' }}
+      </div>
+      <button class="btn-crear" (click)="abrirFormCrear()">+ Crear usuario</button>
     </div>
   </header>
+
+  <!-- MODAL: crear usuario directamente -->
+  <div class="crear-modal" *ngIf="mostrarFormCrear()">
+    <div class="crear-box">
+      <h3>Crear cuenta de abogado</h3>
+      <p class="crear-hint">
+        La cuenta queda lista para iniciar sesión de inmediato (sin correo de
+        confirmación). Comparte el email y la contraseña con la persona.
+      </p>
+
+      <div class="error-banner" *ngIf="errorCrear()">⚠️ {{ errorCrear() }}</div>
+      <div class="success-banner" *ngIf="exitoCrear()">✅ {{ exitoCrear() }}</div>
+
+      <div class="crear-field">
+        <label>Nombre</label>
+        <input type="text" [(ngModel)]="nuevoNombre" placeholder="Nombre del abogado" [disabled]="creandoUsuario()"/>
+      </div>
+      <div class="crear-field">
+        <label>Email *</label>
+        <input type="email" [(ngModel)]="nuevoEmail" placeholder="correo@gmail.com" [disabled]="creandoUsuario()"/>
+      </div>
+      <div class="crear-field">
+        <label>Contraseña *</label>
+        <input type="text" [(ngModel)]="nuevoPassword" placeholder="Mínimo 6 caracteres" [disabled]="creandoUsuario()"/>
+      </div>
+      <label class="crear-checkbox">
+        <input type="checkbox" [(ngModel)]="nuevoAprobarDeInmediato" [disabled]="creandoUsuario()"/>
+        Aprobar de inmediato (si no, queda con 1 hora de prueba)
+      </label>
+
+      <div class="crear-actions">
+        <button class="btn-secondary" (click)="cerrarFormCrear()" [disabled]="creandoUsuario()">Cancelar</button>
+        <button class="btn-primary" (click)="crearUsuario()" [disabled]="creandoUsuario()">
+          {{ creandoUsuario() ? '⏳ Creando...' : 'Crear cuenta' }}
+        </button>
+      </div>
+    </div>
+  </div>
 
   <div class="filter-tabs">
     <button [class.active]="filtro() === 'pendiente'" (click)="setFiltro('pendiente')">Pendientes</button>

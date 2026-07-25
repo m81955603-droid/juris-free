@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
 interface UsuarioPerfil {
@@ -16,7 +17,7 @@ interface UsuarioPerfil {
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.scss']
 })
@@ -29,6 +30,16 @@ export class AdminComponent implements OnInit {
   errorMsg = signal<string | null>(null);
   procesando = signal<string | null>(null); // id del usuario en proceso
   filtro = signal<'todos' | 'pendiente' | 'aprobado' | 'rechazado'>('pendiente');
+
+  // ── Formulario de creacion directa ──
+  mostrarFormCrear = signal(false);
+  creandoUsuario = signal(false);
+  errorCrear = signal<string | null>(null);
+  exitoCrear = signal<string | null>(null);
+  nuevoEmail = '';
+  nuevoPassword = '';
+  nuevoNombre = '';
+  nuevoAprobarDeInmediato = true;
 
   usuariosFiltrados = computed(() => {
     const f = this.filtro();
@@ -92,5 +103,56 @@ export class AdminComponent implements OnInit {
   formatearFecha(iso: string): string {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString('es-BO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  // ── Creacion directa de usuarios ──
+
+  abrirFormCrear() {
+    this.mostrarFormCrear.set(true);
+    this.errorCrear.set(null);
+    this.exitoCrear.set(null);
+    this.nuevoEmail = '';
+    this.nuevoPassword = '';
+    this.nuevoNombre = '';
+    this.nuevoAprobarDeInmediato = true;
+  }
+
+  cerrarFormCrear() {
+    this.mostrarFormCrear.set(false);
+  }
+
+  crearUsuario() {
+    this.errorCrear.set(null);
+    this.exitoCrear.set(null);
+
+    if (!this.nuevoEmail.trim() || !this.nuevoPassword.trim()) {
+      this.errorCrear.set('Completa el email y la contraseña.');
+      return;
+    }
+    if (this.nuevoPassword.length < 6) {
+      this.errorCrear.set('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    this.creandoUsuario.set(true);
+    this.http.post(`${this.apiUrl}/usuarios/crear`, {
+      email: this.nuevoEmail.trim(),
+      password: this.nuevoPassword,
+      nombre: this.nuevoNombre.trim(),
+      aprobar_de_inmediato: this.nuevoAprobarDeInmediato
+    }).subscribe({
+      next: () => {
+        this.exitoCrear.set(`Cuenta creada: ${this.nuevoEmail}`);
+        this.creandoUsuario.set(false);
+        this.nuevoEmail = '';
+        this.nuevoPassword = '';
+        this.nuevoNombre = '';
+        this.cargar();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.errorCrear.set(err.error?.detail || 'No se pudo crear la cuenta.');
+        this.creandoUsuario.set(false);
+      }
+    });
   }
 }

@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 
 import httpx
 from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
 
 from ..core.auth import get_current_user, CurrentUser, es_email_super_admin
 
@@ -29,6 +30,13 @@ router = APIRouter()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+
+
+class CrearUsuarioRequest(BaseModel):
+    email: str
+    password: str
+    nombre: str = ""
+    aprobar_de_inmediato: bool = True
 
 
 def _admin_headers() -> dict:
@@ -98,6 +106,67 @@ async def rechazar_usuario(usuario_id: str, user: CurrentUser = Depends(get_curr
     if r.status_code not in (200, 204):
         raise HTTPException(502, f"Error rechazando usuario: {r.text}")
     return {"ok": True}
+
+
+@router.post("/usuarios/crear")
+async def crear_usuario(body: CrearUsuarioRequest, user: CurrentUser = Depends(get_current_user)):
+    """
+    Crea una cuenta de abogado directamente (sin que la persona tenga
+    que auto-registrarse ni confirmar email) — util para dar de alta a
+    los abogados reales, o para hacer pruebas rapidas.
+
+    Usa la Admin API de Supabase (email_confirm=true), asi que la
+    cuenta queda lista para iniciar sesion de inmediato con el
+    email/password indicados.
+    """
+    _exigir_super_admin(user)
+
+    if len(body.password) < 6:
+        raise HTTPException(400, "La contraseña debe tener al menos 6 caracteres.")
+
+    payload = {
+        "email": body.email.strip().lower(),
+        "password": body.password,
+        "email_confirm": True,
+        "user_metadata": {"full_name": body.nombre},
+    }
+    headers = {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(f"{SUPABASE_URL}/auth/v1/admin/users", json=payload, headers=headers)
+
+        if r.status_code not in (200, 201):
+            try:
+                cuerpo_error = r.json()
+                detalle = cuerpo_error.get("msg") or cuerpo_error.get("message") or r.text
+            except Exception:
+                detalle = r.text
+            if "already been registered" in detalle or "already registered" in detalle:
+                raise HTTPException(400, "Ya existe una cuenta con ese email.")
+            raise HTTPException(502, f"Error creando el usuario: {detalle}")
+
+        nuevo_usuario = r.json()
+        nuevo_id = nuevo_usuario.get("id")
+
+        # El trigger de la base de datos ya creo la fila en usuarios_perfil
+        # (estado='pendiente') apenas se creo el auth.users. Si se pidio
+        # aprobar de inmediato, la actualizamos ahora.
+        if body.aprobar_de_inmediato and nuevo_id:
+            await client.patch(
+                f"{SUPABASE_URL}/rest/v1/usuarios_perfil?id=eq.{nuevo_id}",
+                json={
+                    "estado": "aprobado",
+                    "fecha_aprobacion": datetime.now(timezone.utc).isoformat(),
+                    "aprobado_por": user.user_id,
+                },
+                headers=_admin_headers()
+            )
+
+    return {"ok": True, "id": nuevo_id, "email": body.email}
 
 
 @router.get("/mi-estado")
