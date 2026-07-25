@@ -1,0 +1,41 @@
+<div class="pendiente-container">
+  <div class="pendiente-card">
+
+    <ng-container *ngIf="estado() === 'cargando'">
+      <div class="spinner"></div>
+      <p>Verificando tu cuenta...</p>
+    </ng-container>
+
+    <ng-container *ngIf="estado() === 'pendiente'">
+      <div class="icon-wrap pendiente">⏳</div>
+      <h1>Tu cuenta está en revisión</h1>
+      <p class="desc">
+        Un administrador debe aprobar tu acceso antes de que puedas usar el sistema
+        de forma permanente.
+      </p>
+
+      <div class="trial-box" *ngIf="enPrueba()">
+        <p class="trial-label">Acceso de prueba activo</p>
+        <p class="trial-time">{{ minutosRestantes() }} min restantes</p>
+        <p class="trial-sub">Puedes seguir usando el sistema mientras se revisa tu cuenta</p>
+        <a routerLink="/chat" class="btn-primary">Volver al sistema</a>
+      </div>
+
+      <div class="trial-box expired" *ngIf="!enPrueba()">
+        <p class="trial-label">Tu hora de prueba terminó</p>
+        <p class="trial-sub">Espera a que el administrador apruebe tu cuenta para continuar</p>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="estado() === 'rechazado'">
+      <div class="icon-wrap rechazado">✕</div>
+      <h1>Acceso no autorizado</h1>
+      <p class="desc">
+        Tu solicitud de acceso fue rechazada. Si crees que esto es un error,
+        contacta al administrador del sistema.
+      </p>
+    </ng-container>
+
+    <button class="btn-logout" (click)="cerrarSesion()">Cerrar sesión</button>
+  </div>
+</div>

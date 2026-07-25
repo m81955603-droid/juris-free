@@ -1,0 +1,63 @@
+<div class="admin-layout">
+
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Panel de Administración</h1>
+      <p class="page-sub">Aprueba o rechaza el acceso de nuevos abogados al sistema</p>
+    </div>
+    <div class="pendientes-badge" *ngIf="pendientesCount() > 0">
+      {{ pendientesCount() }} pendiente{{ pendientesCount() === 1 ? '' : 's' }}
+    </div>
+  </header>
+
+  <div class="filter-tabs">
+    <button [class.active]="filtro() === 'pendiente'" (click)="setFiltro('pendiente')">Pendientes</button>
+    <button [class.active]="filtro() === 'aprobado'" (click)="setFiltro('aprobado')">Aprobados</button>
+    <button [class.active]="filtro() === 'rechazado'" (click)="setFiltro('rechazado')">Rechazados</button>
+    <button [class.active]="filtro() === 'todos'" (click)="setFiltro('todos')">Todos</button>
+  </div>
+
+  <div class="error-banner" *ngIf="errorMsg()">⚠️ {{ errorMsg() }}</div>
+
+  <div class="admin-content">
+    <div class="loading-state" *ngIf="cargando()">
+      <div class="spinner"></div>
+    </div>
+
+    <div class="empty-state" *ngIf="!cargando() && usuariosFiltrados().length === 0">
+      <p>No hay usuarios en esta categoría.</p>
+    </div>
+
+    <div class="usuarios-list" *ngIf="!cargando()">
+      <div class="usuario-card" *ngFor="let u of usuariosFiltrados()">
+        <div class="usuario-info">
+          <div class="usuario-avatar">{{ (u.nombre || u.email)[0] | uppercase }}</div>
+          <div>
+            <p class="usuario-nombre">{{ u.nombre || 'Sin nombre' }} <span class="usuario-rol" *ngIf="u.rol === 'admin'">Admin</span></p>
+            <p class="usuario-email">{{ u.email }}</p>
+            <p class="usuario-fecha">Registrado: {{ formatearFecha(u.fecha_registro) }}</p>
+          </div>
+        </div>
+
+        <div class="usuario-actions">
+          <span class="estado-badge" [class]="u.estado">{{ u.estado }}</span>
+
+          <ng-container *ngIf="u.estado !== 'aprobado'">
+            <button class="btn-approve" (click)="aprobar(u)" [disabled]="procesando() === u.id">
+              ✓ Aprobar
+            </button>
+          </ng-container>
+          <ng-container *ngIf="u.estado !== 'rechazado'">
+            <button class="btn-reject" (click)="rechazar(u)" [disabled]="procesando() === u.id">
+              ✕ Rechazar
+            </button>
+          </ng-container>
+          <button class="btn-admin" (click)="hacerAdmin(u)" [disabled]="procesando() === u.id" *ngIf="u.rol !== 'admin'">
+            Hacer admin
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

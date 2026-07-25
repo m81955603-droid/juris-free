@@ -1,9 +1,12 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: 'login', loadComponent: () => import('./features/login/login.component').then(m => m.LoginComponent) },
+  { path: 'pendiente', loadComponent: () => import('./features/pendiente/pendiente.component').then(m => m.PendienteComponent) },
+  { path: 'admin', canActivate: [authGuard, adminGuard], loadComponent: () => import('./features/admin/admin.component').then(m => m.AdminComponent) },
   { path: 'chat',         canActivate: [authGuard], loadComponent: () => import('./features/chat/chat.component').then(m => m.ChatComponent) },
   { path: 'analyzer',     canActivate: [authGuard], loadComponent: () => import('./features/analyzer/analyzer.component').then(m => m.AnalyzerComponent) },
   { path: 'repository',   canActivate: [authGuard], loadComponent: () => import('./features/repository/repository.component').then(m => m.RepositoryComponent) },

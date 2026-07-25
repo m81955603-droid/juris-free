@@ -2,6 +2,8 @@ import { Component, signal, OnInit, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { map } from 'rxjs/operators';
+import { ProfileService } from './core/services/profile.service';
 
 @Component({
   selector: 'app-root',
@@ -12,7 +14,11 @@ import { HttpClient } from '@angular/common/http';
 })
 export class AppComponent implements OnInit {
   private http = inject(HttpClient);
+  private profile = inject(ProfileService);
   sidebarCollapsed = signal(false);
+
+  esAdmin$ = this.profile.estado$.pipe(map(e => e?.rol === 'admin'));
+  profileEstado$ = this.profile.estado$;
 
   readonly navItems = [
     { path: '/chat',         label: 'Consulta IA',    icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
@@ -27,6 +33,11 @@ export class AppComponent implements OnInit {
     { path: '/scanner', label: 'Scanner', icon: 'M3 9V6a1 1 0 011-1h3M3 15v3a1 1 0 001 1h3m12-15h-3a1 1 0 00-1 1v3m4 9v3a1 1 0 01-1 1h-3' },
     { path: '/converter', label: 'Convertidor', icon: 'M8 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9l-6-6H8z M14 3v6h6 M9 15l3 3 3-3 M12 18v-6' }
   ];
+
+  readonly adminNavItem = {
+    path: '/admin', label: 'Administración',
+    icon: 'M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z'
+  };
 
   ngOnInit() {
     this.pingBackend();

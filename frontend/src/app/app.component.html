@@ -33,6 +33,18 @@
           }
         </a>
       }
+
+      @if (esAdmin$ | async) {
+        <div class="nav-separator"></div>
+        <a class="nav-item" [routerLink]="adminNavItem.path" routerLinkActive="active" [title]="adminNavItem.label">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="adminNavItem.icon"/>
+          </svg>
+          @if (!sidebarCollapsed()) {
+            <span class="nav-label">{{ adminNavItem.label }}</span>
+          }
+        </a>
+      }
     </nav>
 
     @if (!sidebarCollapsed()) {
@@ -40,6 +52,11 @@
         <div class="status-dot"></div>
         <span class="status-text">Sistema activo</span>
       </div>
+      @if ((profileEstado$ | async)?.en_prueba) {
+        <div class="trial-footer">
+          ⏳ Prueba: {{ (profileEstado$ | async)?.minutos_restantes }} min
+        </div>
+      }
     }
   </aside>
 

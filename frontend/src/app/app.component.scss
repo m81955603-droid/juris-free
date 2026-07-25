@@ -92,6 +92,12 @@
   scrollbar-width: none;
 }
 
+.nav-separator {
+  height: 1px;
+  background: rgba(255,255,255,.08);
+  margin: 8px 10px;
+}
+
 .nav-item {
   display: flex;
   align-items: center;
@@ -140,6 +146,16 @@
 }
 
 .status-text { font-size: .7rem; color: rgba(255,255,255,.4); }
+
+.trial-footer {
+  font-size: .68rem;
+  color: #f5c563;
+  background: rgba(245,197,99,.1);
+  padding: 6px 10px;
+  margin: 0 16px 12px;
+  border-radius: 6px;
+  text-align: center;
+}
 
 .main-content {
   overflow-y: auto;
