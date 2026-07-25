@@ -1,7 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
+import { pairwise, startWith } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
+import { SupabaseService } from './supabase.service';
 
 export interface MiEstado {
   rol: 'admin' | 'abogado';
@@ -13,10 +15,30 @@ export interface MiEstado {
 @Injectable({ providedIn: 'root' })
 export class ProfileService {
   private http = inject(HttpClient);
+  private supabase = inject(SupabaseService);
   private apiUrl = environment.apiUrl + '/api/v1/admin';
 
   private estadoSubject = new BehaviorSubject<MiEstado | null>(null);
   estado$ = this.estadoSubject.asObservable();
+
+  constructor() {
+    // Si la cuenta logueada cambia (login, logout, o cambio de cuenta
+    // en la misma pestaña sin recargar la pagina), se borra el estado
+    // cacheado. Sin esto, el rol/estado de la cuenta ANTERIOR se
+    // quedaba "pegado" en pantalla hasta la siguiente consulta manual,
+    // lo cual podia mostrar por error el panel de Administracion a
+    // alguien que no es admin.
+    this.supabase.currentUser$.pipe(
+      startWith(null),
+      pairwise()
+    ).subscribe(([anterior, actual]) => {
+      const idAnterior = anterior?.id ?? null;
+      const idActual = actual?.id ?? null;
+      if (idAnterior !== idActual) {
+        this.estadoSubject.next(null);
+      }
+    });
+  }
 
   /**
    * Consulta el backend y guarda el resultado. Se debe llamar tras el login.
