@@ -1,0 +1,55 @@
+<div class="settings-container">
+
+  <header class="page-header">
+    <h1 class="page-title">Ajustes</h1>
+    <p class="page-sub">Configura tus propias claves de IA (opcional)</p>
+  </header>
+
+  <div class="intro-box">
+    <p>
+      El sistema ya viene con IA gratuita compartida configurada — no necesitas
+      hacer nada para empezar a usarlo. Si quieres tu propia cuota separada
+      (por ejemplo, si usas el sistema muy seguido), puedes configurar tus
+      propias claves gratuitas aquí. Si no configuras ninguna, todo sigue
+      funcionando normal con las claves compartidas.
+    </p>
+  </div>
+
+  <div class="error-banner" *ngIf="errorMsg()">⚠️ {{ errorMsg() }}</div>
+  <div class="success-banner" *ngIf="exitoMsg()">✅ {{ exitoMsg() }}</div>
+
+  <div class="loading-state" *ngIf="cargando()">
+    <div class="spinner"></div>
+  </div>
+
+  <div class="proveedores-list" *ngIf="!cargando()">
+    <div class="proveedor-card" *ngFor="let p of proveedores">
+      <div class="proveedor-info">
+        <div class="proveedor-header">
+          <h3>{{ p.nombre }}</h3>
+          <span class="badge-configurado" *ngIf="configurado()[p.key]">✓ Configurada</span>
+          <span class="badge-sistema" *ngIf="!configurado()[p.key]">Usando clave del sistema</span>
+        </div>
+        <p class="proveedor-desc">{{ p.descripcion }}</p>
+        <a [href]="p.urlObtener" target="_blank" rel="noopener" class="proveedor-link">
+          Obtener clave gratis de {{ p.nombre }} →
+        </a>
+      </div>
+
+      <div class="proveedor-form">
+        <input
+          type="password"
+          [(ngModel)]="valoresNuevos[p.key]"
+          [placeholder]="configurado()[p.key] ? 'Reemplazar clave...' : 'Pegar tu clave aquí...'"
+          [disabled]="guardando() === p.key"/>
+        <button class="btn-guardar" (click)="guardar(p)" [disabled]="guardando() === p.key || !valoresNuevos[p.key]">
+          {{ guardando() === p.key ? '⏳' : 'Guardar' }}
+        </button>
+        <button class="btn-quitar" *ngIf="configurado()[p.key]" (click)="borrar(p)" [disabled]="guardando() === p.key">
+          Quitar
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

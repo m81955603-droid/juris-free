@@ -4,14 +4,20 @@ Si un proveedor falla (cuota agotada, error, modelo caido), cae
 automaticamente al siguiente. El usuario nunca deberia ver un error
 salvo que los 3 fallen al mismo tiempo (muy improbable).
 
+Cada abogado puede usar sus propias claves (configuradas en Ajustes);
+si no configuro ninguna, se usan las claves compartidas del sistema.
+
 Orden:
   1. Gemini 2.5 Flash-Lite   -> mejor cuota diaria gratis, rapido
   2. Mistral OCR             -> especializado en documentos, cuota enorme
   3. Groq Llama 4 Scout      -> respaldo final, tambien gratis
 """
 import httpx, os, logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+
+from ..core.auth import get_current_user, CurrentUser
+from ..core.user_keys import obtener_claves_usuario
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -54,10 +60,11 @@ Si hay sellos o firmas, indicalos como [SELLO] o [FIRMA].
 Responde SOLO con el texto extraido, sin comentarios adicionales."""
 
 
-async def _intentar_gemini(req: OcrRequest) -> str:
-    if not GEMINI_KEY:
+async def _intentar_gemini(req: OcrRequest, custom_keys: dict) -> str:
+    key = custom_keys.get("gemini") or GEMINI_KEY
+    if not key:
         raise RuntimeError("GEMINI_API_KEY no configurada")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={GEMINI_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={key}"
     body = {
         "contents": [{
             "parts": [
@@ -73,8 +80,9 @@ async def _intentar_gemini(req: OcrRequest) -> str:
         return data["candidates"][0]["content"]["parts"][0]["text"]
 
 
-async def _intentar_mistral(req: OcrRequest) -> str:
-    if not MISTRAL_KEY:
+async def _intentar_mistral(req: OcrRequest, custom_keys: dict) -> str:
+    key = custom_keys.get("mistral") or MISTRAL_KEY
+    if not key:
         raise RuntimeError("MISTRAL_API_KEY no configurada")
 
     data_url = f"data:{req.mime_type};base64,{req.image_base64}"
@@ -91,7 +99,7 @@ async def _intentar_mistral(req: OcrRequest) -> str:
                 ]
             }]
         }
-        headers = {"Authorization": f"Bearer {MISTRAL_KEY}", "Content-Type": "application/json"}
+        headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
         async with httpx.AsyncClient(timeout=60) as client:
             resp = await client.post(url, json=body, headers=headers)
             resp.raise_for_status()
@@ -102,7 +110,7 @@ async def _intentar_mistral(req: OcrRequest) -> str:
         "model": "mistral-ocr-latest",
         "document": {"type": "image_url", "image_url": data_url}
     }
-    headers = {"Authorization": f"Bearer {MISTRAL_KEY}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     async with httpx.AsyncClient(timeout=60) as client:
         resp = await client.post(url, json=body, headers=headers)
         resp.raise_for_status()
@@ -111,8 +119,9 @@ async def _intentar_mistral(req: OcrRequest) -> str:
         return "\n\n".join(p.get("markdown", "") for p in paginas) or "(sin texto detectado)"
 
 
-async def _intentar_groq(req: OcrRequest) -> str:
-    if not GROQ_KEY:
+async def _intentar_groq(req: OcrRequest, custom_keys: dict) -> str:
+    key = custom_keys.get("groq") or GROQ_KEY
+    if not key:
         raise RuntimeError("GROQ_API_KEY no configurada")
     url = "https://api.groq.com/openai/v1/chat/completions"
     data_url = f"data:{req.mime_type};base64,{req.image_base64}"
@@ -126,7 +135,7 @@ async def _intentar_groq(req: OcrRequest) -> str:
             ]
         }]
     }
-    headers = {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     async with httpx.AsyncClient(timeout=60) as client:
         resp = await client.post(url, json=body, headers=headers)
         resp.raise_for_status()
@@ -134,7 +143,9 @@ async def _intentar_groq(req: OcrRequest) -> str:
 
 
 @router.post("/scan", response_model=OcrResponse)
-async def scan_document(req: OcrRequest):
+async def scan_document(req: OcrRequest, user: CurrentUser = Depends(get_current_user)):
+    custom_keys = await obtener_claves_usuario(user)
+
     proveedores = [
         ("Gemini 2.5 Flash-Lite", _intentar_gemini),
         ("Mistral OCR",           _intentar_mistral),
@@ -144,7 +155,7 @@ async def scan_document(req: OcrRequest):
     errores = []
     for nombre, fn in proveedores:
         try:
-            texto = await fn(req)
+            texto = await fn(req, custom_keys)
             if texto and texto.strip():
                 logger.info(f"OCR resuelto por: {nombre}")
                 return OcrResponse(text=texto, mode=req.mode, proveedor=nombre)

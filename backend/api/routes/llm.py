@@ -1,7 +1,10 @@
 import httpx, os, time, logging, json
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
+
+from ..core.auth import get_current_user, CurrentUser
+from ..core.user_keys import obtener_claves_usuario
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -90,8 +93,8 @@ def get_contexto_generador(doc_type: str = None) -> str:
     return contexto
 
 
-async def call_openai(p, messages, system, max_tokens):
-    key = os.getenv(p["key_env"])
+async def call_openai(p, messages, system, max_tokens, custom_keys=None):
+    key = (custom_keys or {}).get(p["name"]) or os.getenv(p["key_env"])
     if not key: raise ValueError(f"Falta {p['key_env']}")
     msgs = []
     if system: msgs.append({"role":"system","content":system})
@@ -105,8 +108,8 @@ async def call_openai(p, messages, system, max_tokens):
         d = r.json()
         return d["choices"][0]["message"]["content"], d.get("usage",{}).get("total_tokens",0)
 
-async def call_gemini(p, messages, system, max_tokens):
-    key = os.getenv(p["key_env"])
+async def call_gemini(p, messages, system, max_tokens, custom_keys=None):
+    key = (custom_keys or {}).get(p["name"]) or os.getenv(p["key_env"])
     if not key: raise ValueError("Falta GEMINI_API_KEY")
     contents = []
     if system:
@@ -125,7 +128,8 @@ async def call_gemini(p, messages, system, max_tokens):
         return d["candidates"][0]["content"]["parts"][0]["text"], d.get("usageMetadata",{}).get("totalTokenCount",0)
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat_completion(req: ChatRequest):
+async def chat_completion(req: ChatRequest, user: CurrentUser = Depends(get_current_user)):
+    custom_keys = await obtener_claves_usuario(user)
     providers = PROVIDERS.copy()
     if req.provider:
         pref = next((p for p in providers if p["name"]==req.provider), None)
@@ -146,9 +150,9 @@ async def chat_completion(req: ChatRequest):
             t0 = time.time()
             logger.info(f"Intentando {p['name']} (useContext={req.useContext}, docType={req.docType})...")
             if p["fmt"] == "gemini":
-                content, tokens = await call_gemini(p, req.messages, system, req.maxTokens)
+                content, tokens = await call_gemini(p, req.messages, system, req.maxTokens, custom_keys)
             else:
-                content, tokens = await call_openai(p, req.messages, system, req.maxTokens)
+                content, tokens = await call_openai(p, req.messages, system, req.maxTokens, custom_keys)
             ms = int((time.time()-t0)*1000)
             logger.info(f"{p['name']} OK - {ms}ms, {tokens} tokens")
             return ChatResponse(content=content, provider=p["name"], model=p["model"], tokensUsed=tokens, latencyMs=ms)
@@ -162,11 +166,12 @@ async def chat_completion(req: ChatRequest):
 
     raise HTTPException(503, f"Todos los proveedores fallaron. Ultimo error: {last_err}")
 @router.post("/chat/stream")
-async def chat_stream(req: ChatRequest):
+async def chat_stream(req: ChatRequest, user: CurrentUser = Depends(get_current_user)):
     """Endpoint de streaming — devuelve tokens en tiempo real via SSE"""
     from fastapi.responses import StreamingResponse
     import json
 
+    custom_keys = await obtener_claves_usuario(user)
     providers = PROVIDERS.copy()
     if req.provider:
         pref = next((p for p in providers if p["name"] == req.provider), None)
@@ -186,9 +191,9 @@ async def chat_stream(req: ChatRequest):
             try:
                 logger.info(f"Streaming con {p['name']}...")
                 if p["fmt"] == "gemini":
-                    content, tokens = await call_gemini(p, req.messages, system, req.maxTokens)
+                    content, tokens = await call_gemini(p, req.messages, system, req.maxTokens, custom_keys)
                 else:
-                    content, tokens = await call_openai(p, req.messages, system, req.maxTokens)
+                    content, tokens = await call_openai(p, req.messages, system, req.maxTokens, custom_keys)
 
                 # Simular streaming dividiendo la respuesta en chunks
                 words = content.split(' ')
@@ -271,7 +276,7 @@ class CriticLoopResponse(BaseModel):
     iteraciones:     int
 
 @router.post("/chat/critic-loop", response_model=CriticLoopResponse)
-async def critic_loop(req: CriticLoopRequest):
+async def critic_loop(req: CriticLoopRequest, user: CurrentUser = Depends(get_current_user)):
     """
     Flujo Critic-Loop en 2-3 pasos:
     1. Genera borrador con el LLM principal
@@ -279,6 +284,8 @@ async def critic_loop(req: CriticLoopRequest):
     3. Si riesgo > 20%, un tercer LLM corrige el documento
     Devuelve el documento final blindado juridicamente.
     """
+    custom_keys = await obtener_claves_usuario(user)
+
     # Enriquecer con muestras reales
     system = req.system or ""
     if req.useContext or req.docType:
@@ -294,9 +301,9 @@ async def critic_loop(req: CriticLoopRequest):
             continue
         try:
             if p["fmt"] == "gemini":
-                borrador, _ = await call_gemini(p, req.messages, system, 8000)
+                borrador, _ = await call_gemini(p, req.messages, system, 8000, custom_keys)
             else:
-                borrador, _ = await call_openai(p, req.messages, system, 8000)
+                borrador, _ = await call_openai(p, req.messages, system, 8000, custom_keys)
             provider_usado = p["name"]
             logger.info(f"Borrador generado con {p['name']}")
             break
@@ -324,9 +331,9 @@ async def critic_loop(req: CriticLoopRequest):
             continue
         try:
             if p["fmt"] == "gemini":
-                critica_raw, _ = await call_gemini(p, critica_msg, CRITIC_SYSTEM, 2000)
+                critica_raw, _ = await call_gemini(p, critica_msg, CRITIC_SYSTEM, 2000, custom_keys)
             else:
-                critica_raw, _ = await call_openai(p, critica_msg, CRITIC_SYSTEM, 2000)
+                critica_raw, _ = await call_openai(p, critica_msg, CRITIC_SYSTEM, 2000, custom_keys)
 
             # Parsear JSON de la crítica
             critica_json = critica_raw.strip()
@@ -395,9 +402,9 @@ Genera el documento corregido y perfecto."""
             continue
         try:
             if p["fmt"] == "gemini":
-                documento_final, _ = await call_gemini(p, corrector_msg, CORRECTOR_SYSTEM, 8000)
+                documento_final, _ = await call_gemini(p, corrector_msg, CORRECTOR_SYSTEM, 8000, custom_keys)
             else:
-                documento_final, _ = await call_openai(p, corrector_msg, CORRECTOR_SYSTEM, 8000)
+                documento_final, _ = await call_openai(p, corrector_msg, CORRECTOR_SYSTEM, 8000, custom_keys)
             logger.info(f"Corrección completada con {p['name']}")
             break
         except httpx.HTTPStatusError as e:
