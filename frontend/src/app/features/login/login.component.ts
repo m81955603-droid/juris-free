@@ -12,9 +12,9 @@ import { SupabaseService } from '../../core/services/supabase.service';
 <div class="login-wrapper">
   <div class="login-card">
     <div class="login-logo">
-      <span class="logo-icon">⚖️</span>
-      <h1>MAJA JURÍDICO</h1>
-      <p>Bolivia · Sistema Legal</p>
+      <img src="assets/logo-alsami-mark.png" alt="ALSAMI" class="logo-icon"/>
+      <h1>ALSAMI</h1>
+      <p>Estudio Jurídico</p>
     </div>
 
     <div class="login-form">
@@ -54,7 +54,7 @@ import { SupabaseService } from '../../core/services/supabase.service';
   styles: [`
     .login-wrapper {
       min-height: 100vh;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      background: linear-gradient(135deg, #0a0a0a 0%, #1c1c1c 50%, #0a0a0a 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -74,9 +74,13 @@ import { SupabaseService } from '../../core/services/supabase.service';
       margin-bottom: 2.5rem;
     }
     .logo-icon {
-      font-size: 3rem;
+      width: 84px;
+      height: 84px;
       display: block;
-      margin-bottom: 0.75rem;
+      margin: 0 auto 0.75rem;
+      border-radius: 16px;
+      object-fit: cover;
+      box-shadow: 0 4px 20px rgba(184,135,42,.25);
     }
     .login-logo h1 {
       color: white;
@@ -129,7 +133,7 @@ import { SupabaseService } from '../../core/services/supabase.service';
     .btn-login {
       width: 100%;
       padding: 0.85rem;
-      background: linear-gradient(135deg, #667eea, #764ba2);
+      background: linear-gradient(135deg, #b8872a, #d4a84b);
       color: white;
       border: none;
       border-radius: 10px;

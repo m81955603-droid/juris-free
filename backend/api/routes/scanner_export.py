@@ -195,11 +195,11 @@ async def export_carnet_pdf(body: CarnetPdfRequest):
         y_back = 55*mm
 
         # ── Encabezado con marca ──
-        c.setFillColor(colors.HexColor("#1e3a5f"))
+        c.setFillColor(colors.HexColor("#0a0a0a"))
         c.roundRect(0, page_h - 18*mm, page_w, 18*mm, 0, fill=1, stroke=0)
         c.setFont("Helvetica-Bold", 13)
         c.setFillColor(colors.white)
-        c.drawCentredString(page_w/2, page_h - 11*mm, "MAJA JURÍDICO")
+        c.drawCentredString(page_w/2, page_h - 11*mm, "ALSAMI ESTUDIO JURÍDICO")
         c.setFont("Helvetica", 8)
         c.setFillColor(colors.HexColor("#cbd5e1"))
         c.drawCentredString(page_w/2, page_h - 15.5*mm, "Documento de identidad — listo para imprimir")

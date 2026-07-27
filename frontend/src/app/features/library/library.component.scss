@@ -211,9 +211,9 @@
   padding: 3px 10px;
   margin-bottom: 10px;
   &.ia {
-    background: rgba(15,31,53,.06);
+    background: rgba(10,10,10,.06);
     color: var(--prim-2);
-    border: 1px solid rgba(15,31,53,.12);
+    border: 1px solid rgba(10,10,10,.12);
   }
   &.clasica {
     background: var(--bg);
@@ -244,7 +244,7 @@
   }
   &.ia-mode:focus-within {
     border-color: var(--prim);
-    box-shadow: 0 0 0 3px rgba(15,31,53,.07);
+    box-shadow: 0 0 0 3px rgba(10,10,10,.07);
   }
 }
 .search-ico { color: var(--txt-3); flex-shrink: 0; }
@@ -404,8 +404,8 @@
   gap: 4px;
   font-size: .7rem;
   color: var(--prim-2);
-  background: rgba(15,31,53,.05);
-  border: 1px solid rgba(15,31,53,.1);
+  background: rgba(10,10,10,.05);
+  border: 1px solid rgba(10,10,10,.1);
   border-radius: 20px;
   padding: 3px 9px;
 }
@@ -621,7 +621,7 @@
   font-family: 'DM Mono', monospace;
   font-weight: 500;
   color: var(--prim);
-  background: rgba(15,31,53,.06);
+  background: rgba(10,10,10,.06);
   border-radius: 6px;
   padding: 3px 8px;
   white-space: nowrap;

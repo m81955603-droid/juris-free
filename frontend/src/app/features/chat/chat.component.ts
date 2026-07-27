@@ -6,7 +6,7 @@ import { LlmProxyService } from '../../core/services/llm-proxy.service';
 import { ChatMessage, LegalArea, LlmMessage } from '../../core/models/legal.models';
 import { DocumentService } from '../../core/services/document.service';
 
-const SYSTEM_PROMPT = `Eres MAJA JURÍDICO, asistente juridico especializado en derecho boliviano creado por Miguel Angel Jemio Azurduy. Tu conocimiento abarca toda la legislacion boliviana vigente hasta 2026.
+const SYSTEM_PROMPT = `Eres ALSAMI, asistente juridico especializado en derecho boliviano, creado por Miguel Angel Jemio Azurduy para el Estudio Juridico ALSAMI. Tu conocimiento abarca toda la legislacion boliviana vigente hasta 2026.
 
 LEGISLACION PRINCIPAL QUE CONOCES:
 - CPE 2009 (Constitucion Politica del Estado)
@@ -98,7 +98,7 @@ export class ChatComponent implements OnInit, OnDestroy {
       id: 'welcome',
       role: 'assistant',
       timestamp: new Date(),
-      content: `## Bienvenido a MAJA JURÍDICO Bolivia
+      content: `## Bienvenido a ALSAMI Estudio Jurídico
 
 Soy tu asistente jurídico especializado en **derecho boliviano**. Puedo ayudarte con:
 

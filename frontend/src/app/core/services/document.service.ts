@@ -67,14 +67,14 @@ export class DocumentService {
           @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body { font-family: 'DM Sans', sans-serif; font-size: 11pt; line-height: 1.7; color: #1a1510; padding: 2cm 2.5cm; }
-          .header { border-bottom: 2px solid #0f1f35; padding-bottom: 14px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
-          .logo-area h1 { font-family: 'Playfair Display', serif; font-size: 16pt; color: #0f1f35; }
+          .header { border-bottom: 2px solid #0a0a0a; padding-bottom: 14px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
+          .logo-area h1 { font-family: 'Playfair Display', serif; font-size: 16pt; color: #0a0a0a; }
           .logo-area p { font-size: 8pt; color: #7a7268; letter-spacing: .08em; text-transform: uppercase; }
           .doc-meta { text-align: right; font-size: 9pt; color: #7a7268; }
-          h2 { font-family: 'Playfair Display', serif; font-size: 13pt; color: #0f1f35; margin: 18px 0 8px; border-bottom: 1px solid #e8e3d8; padding-bottom: 4px; }
-          h3 { font-size: 11pt; font-weight: 500; color: #1a3352; margin: 14px 0 6px; }
+          h2 { font-family: 'Playfair Display', serif; font-size: 13pt; color: #0a0a0a; margin: 18px 0 8px; border-bottom: 1px solid #e8e3d8; padding-bottom: 4px; }
+          h3 { font-size: 11pt; font-weight: 500; color: #1c1c1c; margin: 14px 0 6px; }
           p { margin: 6px 0; }
-          strong { color: #0f1f35; font-weight: 500; }
+          strong { color: #0a0a0a; font-weight: 500; }
           code { font-family: monospace; background: #f4f2ee; padding: 1px 4px; border-radius: 3px; font-size: 9pt; }
           ul { padding-left: 18px; margin: 6px 0; }
           li { margin: 3px 0; }
@@ -85,7 +85,7 @@ export class DocumentService {
       <body>
         <div class="header">
           <div class="logo-area">
-            <h1>JURIS-FREE Bolivia</h1>
+            <h1>ALSAMI Estudio Jurídico</h1>
             <p>Sistema Juridico Inteligente · Open Source</p>
           </div>
           <div class="doc-meta">
@@ -95,7 +95,7 @@ export class DocumentService {
         </div>
         <div class="content">${html}</div>
         <div class="footer">
-          Generado por JURIS-FREE Bolivia · Este documento es de caracter informativo. No reemplaza el criterio profesional del abogado.
+          Generado por ALSAMI Estudio Jurídico · Este documento es de caracter informativo. No reemplaza el criterio profesional del abogado.
         </div>
         <script>window.onload = () => { window.print(); }<\/script>
       </body>
@@ -109,9 +109,9 @@ export class DocumentService {
     const city = data.ciudad || 'La Paz';
 
     return new Document({
-      creator: 'JURIS-FREE Bolivia',
+      creator: 'ALSAMI Estudio Jurídico',
       title: data.titulo,
-      description: 'Documento juridico generado por JURIS-FREE Bolivia',
+      description: 'Documento juridico generado por ALSAMI Estudio Jurídico',
       styles: {
         default: {
           document: {
@@ -132,10 +132,10 @@ export class DocumentService {
             children: [
               new Paragraph({
                 children: [
-                  new TextRun({ text: 'JURIS-FREE Bolivia', font: 'Calibri', size: 16, color: '0f1f35', bold: true }),
+                  new TextRun({ text: 'ALSAMI Estudio Jurídico', font: 'Calibri', size: 16, color: '0a0a0a', bold: true }),
                   new TextRun({ text: '  ·  ' + data.titulo, font: 'Calibri', size: 16, color: '7a7268' })
                 ],
-                border: { bottom: { color: '0f1f35', size: 6, style: BorderStyle.SINGLE, space: 4 } }
+                border: { bottom: { color: '0a0a0a', size: 6, style: BorderStyle.SINGLE, space: 4 } }
               })
             ]
           })
@@ -149,7 +149,7 @@ export class DocumentService {
                   new TextRun({ children: [PageNumber.CURRENT], font: 'Calibri', size: 16, color: '7a7268' }),
                   new TextRun({ text: ' de ', font: 'Calibri', size: 16, color: '7a7268' }),
                   new TextRun({ children: [PageNumber.TOTAL_PAGES], font: 'Calibri', size: 16, color: '7a7268' }),
-                  new TextRun({ text: '   |   JURIS-FREE Bolivia — Documento informativo', font: 'Calibri', size: 16, color: 'b8b0a0', italics: true })
+                  new TextRun({ text: '   |   ALSAMI Estudio Jurídico — Documento informativo', font: 'Calibri', size: 16, color: 'b8b0a0', italics: true })
                 ],
                 alignment: AlignmentType.CENTER,
                 border: { top: { color: 'e8e3d8', size: 4, style: BorderStyle.SINGLE, space: 4 } }
@@ -160,7 +160,7 @@ export class DocumentService {
         children: [
           new Paragraph({
             children: [
-              new TextRun({ text: data.titulo, font: 'Calibri', size: 36, bold: true, color: '0f1f35' })
+              new TextRun({ text: data.titulo, font: 'Calibri', size: 36, bold: true, color: '0a0a0a' })
             ],
             heading: HeadingLevel.TITLE,
             spacing: { before: 0, after: 240 }
@@ -185,7 +185,7 @@ export class DocumentService {
           }),
           new Paragraph({
             children: [
-              new TextRun({ text: 'Generado por JURIS-FREE Bolivia', font: 'Calibri', size: 16, color: 'b8b0a0', italics: true })
+              new TextRun({ text: 'Generado por ALSAMI Estudio Jurídico', font: 'Calibri', size: 16, color: 'b8b0a0', italics: true })
             ],
             alignment: AlignmentType.CENTER
           }),
@@ -213,7 +213,7 @@ export class DocumentService {
 
       if (line.startsWith('## ')) {
         paragraphs.push(new Paragraph({
-          children: [new TextRun({ text: line.replace('## ', ''), font: 'Calibri', size: 28, bold: true, color: '0f1f35' })],
+          children: [new TextRun({ text: line.replace('## ', ''), font: 'Calibri', size: 28, bold: true, color: '0a0a0a' })],
           heading: HeadingLevel.HEADING_1,
           spacing: { before: 360, after: 160 },
           border: { bottom: { color: 'e8e3d8', size: 4, style: BorderStyle.SINGLE, space: 4 } }
@@ -223,7 +223,7 @@ export class DocumentService {
 
       if (line.startsWith('### ')) {
         paragraphs.push(new Paragraph({
-          children: [new TextRun({ text: line.replace('### ', ''), font: 'Calibri', size: 24, bold: true, color: '1a3352' })],
+          children: [new TextRun({ text: line.replace('### ', ''), font: 'Calibri', size: 24, bold: true, color: '1c1c1c' })],
           heading: HeadingLevel.HEADING_2,
           spacing: { before: 240, after: 120 }
         }));
@@ -258,11 +258,11 @@ export class DocumentService {
       if (!match[0]) continue;
 
       if (match[1]) {
-        runs.push(new TextRun({ text: match[1], font: 'Calibri', size: 22, bold: true, color: '0f1f35' }));
+        runs.push(new TextRun({ text: match[1], font: 'Calibri', size: 22, bold: true, color: '0a0a0a' }));
       } else if (match[2]) {
         runs.push(new TextRun({ text: match[2], font: 'Calibri', size: 22, italics: true, color: '4a4438' }));
       } else if (match[3]) {
-        runs.push(new TextRun({ text: match[3], font: 'Courier New', size: 20, color: '1a3352' }));
+        runs.push(new TextRun({ text: match[3], font: 'Courier New', size: 20, color: '1c1c1c' }));
       } else if (match[4]) {
         runs.push(new TextRun({ text: match[4], font: 'Calibri', size: 22, color: '1a1510' }));
       }

@@ -334,7 +334,7 @@ ${a.riesgos.map(r => `- ${r}`).join('\n') || '- No identificados'}
 ${a.siguiente}
 
 ---
-*Analisis generado por JURIS-FREE Bolivia*`;
+*Analisis generado por ALSAMI Estudio Jurídico*`;
 
     await this.docSvc.generateLegalDocument({
       titulo:   'Analisis — ' + this.fileName(),

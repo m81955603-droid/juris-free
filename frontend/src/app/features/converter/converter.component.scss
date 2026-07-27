@@ -19,7 +19,7 @@
     font-size: 1.5rem;
     font-weight: 700;
     color: #1e293b;
-    svg { width: 28px; height: 28px; color: #3b82f6; }
+    svg { width: 28px; height: 28px; color: #b8872a; }
   }
 }
 
@@ -37,8 +37,8 @@
     font-weight: 500;
     transition: all 0.2s;
     &.active {
-      background: #3b82f6;
-      border-color: #3b82f6;
+      background: #b8872a;
+      border-color: #b8872a;
       color: white;
       font-weight: 600;
     }
@@ -71,14 +71,14 @@
   transition: all 0.2s;
 
   &.dragging {
-    border-color: #3b82f6;
-    background: #eff6ff;
+    border-color: #b8872a;
+    background: #fdf6e8;
   }
 
   svg {
     width: 56px;
     height: 56px;
-    color: #93c5fd;
+    color: #d4a84b;
     margin-bottom: 1rem;
   }
 
@@ -91,14 +91,14 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: #3b82f6;
+  background: #b8872a;
   color: white;
   border: none;
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
-  &:hover { background: #2563eb; }
+  &:hover { background: #96691f; }
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 
@@ -129,7 +129,7 @@
   gap: 1rem;
   margin-bottom: 1.5rem;
 
-  svg { width: 40px; height: 40px; color: #3b82f6; flex-shrink: 0; }
+  svg { width: 40px; height: 40px; color: #b8872a; flex-shrink: 0; }
   .file-name { font-weight: 600; color: #1e293b; word-break: break-all; }
   .file-size { color: #94a3b8; font-size: 0.8rem; }
 }

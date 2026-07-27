@@ -1,9 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
 
 :root {
-  --prim:    #0f1f35;
-  --prim-2:  #1a3352;
-  --prim-3:  #254a73;
+  --prim:    #0a0a0a;
+  --prim-2:  #1c1c1c;
+  --prim-3:  #2e2e2e;
   --gold:    #b8872a;
   --gold-lt: #d4a84b;
   --gold-bg: #fdf6e8;
@@ -18,8 +18,8 @@
   --red:     #c0392b;
   --green:   #1a6b3c;
   --radius:  10px;
-  --shadow:  0 1px 3px rgba(15,31,53,.06), 0 4px 16px rgba(15,31,53,.04);
-  --shadow-md: 0 2px 8px rgba(15,31,53,.08), 0 8px 32px rgba(15,31,53,.06);
+  --shadow:  0 1px 3px rgba(10,10,10,.06), 0 4px 16px rgba(10,10,10,.04);
+  --shadow-md: 0 2px 8px rgba(10,10,10,.08), 0 8px 32px rgba(10,10,10,.06);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

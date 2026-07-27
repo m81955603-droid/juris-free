@@ -149,7 +149,7 @@ dd { margin: 0; color: var(--txt); }
 }
 
 /* ── PLAZO PANEL ── */
-.panel-plazo { border-color: rgba(15,31,53,.12); }
+.panel-plazo { border-color: rgba(10,10,10,.12); }
 
 .panel-badge {
   font-size: .65rem; font-weight: 600; background: var(--prim);
@@ -189,7 +189,7 @@ dd { margin: 0; color: var(--txt); }
 }
 .plazo-norma {
   font-size: .72rem; font-family: 'DM Mono', monospace;
-  color: var(--prim); background: rgba(15,31,53,.06);
+  color: var(--prim); background: rgba(10,10,10,.06);
   border-radius: 5px; padding: 2px 7px;
 }
 .plazo-dias-hab {

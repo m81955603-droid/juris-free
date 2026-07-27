@@ -69,7 +69,7 @@ hr { border: none; border-top: 1px solid var(--bord); margin: 12px 0; }
   font-size: .72rem;
   &.empty { background: var(--bg); }
   &.hoy {
-    background: rgba(15,31,53,.03);
+    background: rgba(10,10,10,.03);
     .dn { background: var(--prim); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
   }
 }

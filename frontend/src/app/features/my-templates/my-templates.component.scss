@@ -31,7 +31,7 @@
 .drop-zone {
   border: 2px dashed var(--bord-2); border-radius: 10px; padding: 28px 20px;
   text-align: center; cursor: pointer; transition: .2s; background: var(--bg); margin-bottom: 12px;
-  &:hover, &.drag-over { border-color: var(--prim-3); background: rgba(15,31,53,.03); }
+  &:hover, &.drag-over { border-color: var(--prim-3); background: rgba(10,10,10,.03); }
 }
 .drop-content {
   display: flex; flex-direction: column; align-items: center; gap: 8px;
@@ -121,7 +121,7 @@
 /* ── TONO BADGES ── */
 .tono-badge {
   font-size: .68rem; font-weight: 600; border-radius: 20px; padding: 2px 8px;
-  &.tono-formal     { background: rgba(15,31,53,.08);  color: var(--prim); }
+  &.tono-formal     { background: rgba(10,10,10,.08);  color: var(--prim); }
   &.tono-conciliador{ background: rgba(26,107,60,.08); color: var(--green); }
   &.tono-agresivo   { background: rgba(192,57,43,.08); color: var(--red); }
   &.tono-tecnico    { background: rgba(44,134,171,.08);color: #2e86ab; }
@@ -158,7 +158,7 @@
   font-size: .72rem; background: var(--bg); border: 1px solid var(--bord);
   border-radius: 6px; padding: 3px 8px; color: var(--txt-2); font-family: 'DM Mono', monospace;
 }
-.var-tag { background: rgba(15,31,53,.05); border-color: rgba(15,31,53,.15); color: var(--prim); }
+.var-tag { background: rgba(10,10,10,.05); border-color: rgba(10,10,10,.15); color: var(--prim); }
 
 .formato-list { display: flex; flex-direction: column; gap: 6px; }
 .formato-item {
