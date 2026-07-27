@@ -22,8 +22,10 @@ from datetime import datetime, timezone
 import httpx
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from typing import Optional
 
 from ..core.auth import get_current_user, CurrentUser, es_email_super_admin
+from ..core.user_keys import PROVIDER_COLUMNS
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -37,6 +39,15 @@ class CrearUsuarioRequest(BaseModel):
     password: str
     nombre: str = ""
     aprobar_de_inmediato: bool = True
+
+
+class AsignarApiKeysRequest(BaseModel):
+    gemini_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
+    cerebras_api_key: Optional[str] = None
+    openrouter_api_key: Optional[str] = None
+    sambanova_api_key: Optional[str] = None
+    mistral_api_key: Optional[str] = None
 
 
 def _admin_headers() -> dict:
@@ -178,3 +189,54 @@ async def mi_estado(user: CurrentUser = Depends(get_current_user)):
         "en_prueba": user.en_prueba,
         "minutos_restantes": user.minutos_restantes,
     }
+
+
+# ═══════════════════════════════════════════════════════════
+# API KEYS: el super-admin ve y asigna las claves de CUALQUIER
+# abogado (a diferencia de /api/v1/settings/api-keys, que es
+# donde cada quien administraba sus propias claves en privado).
+# ═══════════════════════════════════════════════════════════
+
+@router.get("/usuarios/{usuario_id}/api-keys")
+async def ver_api_keys_de_usuario(usuario_id: str, user: CurrentUser = Depends(get_current_user)):
+    """Devuelve las claves REALES configuradas para ese abogado (solo super-admin)."""
+    _exigir_super_admin(user)
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.get(
+            f"{SUPABASE_URL}/rest/v1/usuario_api_keys?user_id=eq.{usuario_id}&select=*",
+            headers=_admin_headers()
+        )
+    if r.status_code != 200:
+        raise HTTPException(502, f"Error consultando claves: {r.text}")
+
+    filas = r.json()
+    fila = filas[0] if filas else {}
+    return {
+        proveedor: fila.get(columna) or ""
+        for proveedor, columna in PROVIDER_COLUMNS.items()
+    }
+
+
+@router.post("/usuarios/{usuario_id}/api-keys")
+async def asignar_api_keys_a_usuario(
+    usuario_id: str, body: AsignarApiKeysRequest, user: CurrentUser = Depends(get_current_user)
+):
+    """Asigna (o limpia) las claves de un abogado especifico (solo super-admin)."""
+    _exigir_super_admin(user)
+
+    payload = {k: (v if v else None) for k, v in body.model_dump().items()}
+    payload["user_id"] = usuario_id
+    payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    headers = _admin_headers()
+    headers["Prefer"] = "resolution=merge-duplicates,return=representation"
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(
+            f"{SUPABASE_URL}/rest/v1/usuario_api_keys",
+            json=payload,
+            headers=headers
+        )
+    if r.status_code not in (200, 201):
+        raise HTTPException(502, f"No se pudieron guardar las claves: {r.text}")
+    return {"ok": True}

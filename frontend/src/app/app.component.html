@@ -44,6 +44,14 @@
             <span class="nav-label">{{ adminNavItem.label }}</span>
           }
         </a>
+        <a class="nav-item" [routerLink]="settingsNavItem.path" routerLinkActive="active" [title]="settingsNavItem.label">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="settingsNavItem.icon"/>
+          </svg>
+          @if (!sidebarCollapsed()) {
+            <span class="nav-label">{{ settingsNavItem.label }}</span>
+          }
+        </a>
       }
     </nav>
 

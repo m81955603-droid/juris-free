@@ -16,7 +16,7 @@ export const routes: Routes = [
   { path: 'cases',        canActivate: [authGuard], loadComponent: () => import('./features/cases/cases.component').then(m => m.CasesComponent) },
   { path: 'calendar',     canActivate: [authGuard], loadComponent: () => import('./features/calendar/calendar.component').then(m => m.CalendarComponent) },
   { path: 'clients',      canActivate: [authGuard], loadComponent: () => import('./features/clients/clients.component').then(m => m.ClientsComponent) },
-  { path: 'settings',     canActivate: [authGuard], loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent) },
+  { path: 'settings',     canActivate: [authGuard, adminGuard], loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent) },
   { path: 'search',       canActivate: [authGuard], loadComponent: () => import('./features/global-search/global-search.component').then(m => m.GlobalSearchComponent) },
   { path: 'scanner', canActivate: [authGuard], loadComponent: () => import('./features/scanner/scanner.component').then(m => m.ScannerComponent) },
   { path: 'converter', canActivate: [authGuard], loadComponent: () => import('./features/converter/converter.component').then(m => m.ConverterComponent) },
