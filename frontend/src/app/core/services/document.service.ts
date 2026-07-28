@@ -4,6 +4,8 @@ import {
   AlignmentType, BorderStyle, PageBreak,
   Table, TableRow, TableCell, WidthType,
   Header, Footer, PageNumber, NumberFormat,
+  ImageRun, HorizontalPositionAlign, HorizontalPositionRelativeFrom,
+  VerticalPositionAlign, VerticalPositionRelativeFrom, TextWrappingType,
   Packer
 } from 'docx';
 import { saveAs } from 'file-saver';
@@ -26,7 +28,7 @@ export class DocumentService {
    */
   async exportChatToWord(markdownContent: string, titulo: string): Promise<void> {
     const paragraphs = this.parseMarkdownToDocx(markdownContent);
-    const doc = this.buildWordDocument({
+    const doc = await this.buildWordDocument({
       titulo,
       ciudad: 'La Paz',
       fecha: new Date().toLocaleDateString('es-BO', { day: 'numeric', month: 'long', year: 'numeric' }),
@@ -43,7 +45,7 @@ export class DocumentService {
    */
   async generateLegalDocument(data: DocumentData): Promise<void> {
     const paragraphs = this.parseMarkdownToDocx(data.contenido);
-    const doc = this.buildWordDocument(data, paragraphs);
+    const doc = await this.buildWordDocument(data, paragraphs);
     const buffer = await Packer.toBlob(doc);
     const filename = data.titulo.replace(/\s+/g, '_').toLowerCase() + '.docx';
     saveAs(buffer, filename);
@@ -66,7 +68,14 @@ export class DocumentService {
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; }
-          body { font-family: 'DM Sans', sans-serif; font-size: 11pt; line-height: 1.7; color: #1a1510; padding: 2cm 2.5cm; }
+          html { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+          body {
+            font-family: 'DM Sans', sans-serif; font-size: 11pt; line-height: 1.7; color: #1a1510; padding: 2cm 2.5cm;
+            background-image: url('${window.location.origin}/assets/logo-alsami-watermark-doc.png');
+            background-repeat: no-repeat;
+            background-position: center 45%;
+            background-size: 340px;
+          }
           .header { border-bottom: 2px solid #0a0a0a; padding-bottom: 14px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
           .logo-area h1 { font-family: 'Playfair Display', serif; font-size: 16pt; color: #0a0a0a; }
           .logo-area p { font-size: 8pt; color: #7a7268; letter-spacing: .08em; text-transform: uppercase; }
@@ -104,9 +113,19 @@ export class DocumentService {
     win.document.close();
   }
 
-  private buildWordDocument(data: DocumentData, paragraphs: Paragraph[]): Document {
+  private watermarkCache: ArrayBuffer | null = null;
+
+  private async cargarMarcaDeAgua(): Promise<ArrayBuffer> {
+    if (this.watermarkCache) return this.watermarkCache;
+    const resp = await fetch('assets/logo-alsami-watermark-doc.png');
+    this.watermarkCache = await resp.arrayBuffer();
+    return this.watermarkCache;
+  }
+
+  private async buildWordDocument(data: DocumentData, paragraphs: Paragraph[]): Promise<Document> {
     const date = data.fecha || new Date().toLocaleDateString('es-BO', { day: 'numeric', month: 'long', year: 'numeric' });
     const city = data.ciudad || 'La Paz';
+    const marcaDeAgua = await this.cargarMarcaDeAgua();
 
     return new Document({
       creator: 'ALSAMI Estudio Jurídico',
@@ -130,6 +149,21 @@ export class DocumentService {
         headers: {
           default: new Header({
             children: [
+              new Paragraph({
+                children: [
+                  new ImageRun({
+                    type: 'png',
+                    data: marcaDeAgua,
+                    transformation: { width: 320, height: 255 },
+                    floating: {
+                      horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, align: HorizontalPositionAlign.CENTER },
+                      verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, align: VerticalPositionAlign.CENTER },
+                      behindDocument: true,
+                      wrap: { type: TextWrappingType.NONE }
+                    }
+                  })
+                ]
+              }),
               new Paragraph({
                 children: [
                   new TextRun({ text: 'ALSAMI Estudio Jurídico', font: 'Calibri', size: 16, color: '0a0a0a', bold: true }),

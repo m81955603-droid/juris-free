@@ -162,5 +162,8 @@
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background:
+    linear-gradient(rgba(249,248,246,.94), rgba(249,248,246,.94)),
+    url('/assets/logo-alsami-watermark.png') center 40% / 340px no-repeat;
+  background-color: var(--bg);
 }
