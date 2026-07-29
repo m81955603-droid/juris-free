@@ -1,12 +1,14 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { createClient, SupabaseClient, User, Session } from '@supabase/supabase-js';
-import { BehaviorSubject, Observable, from } from 'rxjs';
+import { BehaviorSubject, Observable, from, firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { LegalDocument, Conversation, ChatMessage } from '../models/legal.models';
 
 @Injectable({ providedIn: 'root' })
 export class SupabaseService {
+  private http = inject(HttpClient);
   private client: SupabaseClient;
   private userSubject    = new BehaviorSubject<User | null>(null);
   private sessionSubject = new BehaviorSubject<Session | null>(null);
@@ -43,6 +45,25 @@ signInWithPassword(email: string, password: string): Observable<void> {
   async getAccessToken(): Promise<string | null> {
     const { data: { session } } = await this.client.auth.getSession();
     return session?.access_token ?? null;
+  }
+
+  /**
+   * Marca la sesion actual como la UNICA valida para esta cuenta.
+   * Cualquier otra sesion abierta antes en otro dispositivo queda
+   * invalidada en su siguiente peticion al backend. Se llama justo
+   * despues de iniciar sesion (email/password o Google).
+   */
+  async registrarSesionActual(): Promise<void> {
+    const token = await this.getAccessToken();
+    if (!token) return;
+    try {
+      await firstValueFrom(
+        this.http.post(`${environment.apiUrl}/api/v1/session/registrar`, {})
+      );
+    } catch {
+      // Si falla, no bloqueamos el login por esto — simplemente no
+      // quedara reforzada la sesion unica hasta el proximo intento.
+    }
   }
 
   signInWithGoogle(): Observable<void> {

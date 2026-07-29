@@ -61,6 +61,7 @@ export class AuthCallbackComponent implements OnInit, OnDestroy {
 
     if (token) {
       if (this.intervalo) clearInterval(this.intervalo);
+      await this.supabase.registrarSesionActual();
       this.router.navigate(['/chat']);
       return;
     }

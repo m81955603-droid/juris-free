@@ -1,7 +1,7 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
 
 @Component({
@@ -179,14 +179,21 @@ import { SupabaseService } from '../../core/services/supabase.service';
     }
   `]
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private supabase = inject(SupabaseService);
   private router   = inject(Router);
+  private route    = inject(ActivatedRoute);
 
   email    = '';
   password = '';
   loading  = signal(false);
   error    = signal('');
+
+  ngOnInit(): void {
+    if (this.route.snapshot.queryParamMap.get('motivo') === 'otro-dispositivo') {
+      this.error.set('Tu sesión se cerró porque esta cuenta inició sesión en otro dispositivo. Solo se permite una sesión activa a la vez.');
+    }
+  }
 
   loginWithGoogle() {
     this.loading.set(true);
@@ -207,7 +214,10 @@ export class LoginComponent {
     this.loading.set(true);
     this.error.set('');
     this.supabase.signInWithPassword(this.email, this.password).subscribe({
-      next: () => this.router.navigate(['/chat']),
+      next: async () => {
+        await this.supabase.registrarSesionActual();
+        this.router.navigate(['/chat']);
+      },
       error: (err) => {
         this.error.set('Credenciales incorrectas. Intenta de nuevo.');
         this.loading.set(false);

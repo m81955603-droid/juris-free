@@ -29,6 +29,8 @@ administrativas puntuales (ver backend/api/routes/admin.py), nunca
 para responder una request normal de usuario.
 """
 import os
+import base64
+import json
 import logging
 from datetime import datetime, timezone
 import httpx
@@ -55,6 +57,25 @@ def es_email_super_admin(email: str | None) -> bool:
     """Util para otros modulos (ej. admin.py) que necesiten marcar filas
     de la lista de usuarios segun quien es realmente super-admin."""
     return bool(email) and email.strip().lower() in _SUPER_ADMIN_EMAILS
+
+
+def _leer_session_id_del_token(token: str) -> str | None:
+    """
+    Lee el campo 'session_id' del JWT SIN verificar su firma — es seguro
+    porque en este punto el token ya fue validado llamando a Supabase
+    (/auth/v1/user). Solo se usa para leer ese dato, no para autenticar.
+    Supabase incluye un session_id distinto por cada login.
+    """
+    try:
+        partes = token.split(".")
+        if len(partes) != 3:
+            return None
+        payload_b64 = partes[1]
+        relleno = "=" * (-len(payload_b64) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64 + relleno))
+        return payload.get("session_id")
+    except Exception:
+        return None
 
 
 class CurrentUser:
@@ -169,6 +190,17 @@ async def get_current_user(authorization: str = Header(None)) -> CurrentUser:
                 "Tu hora de prueba terminó. Tu cuenta sigue pendiente de aprobación por el administrador."
             )
         en_prueba = True
+
+    # ── SESION UNICA: si esta cuenta inicio sesion en otro dispositivo
+    # despues que esta, esta sesion queda invalidada. El super-admin
+    # esta exento (puede tener varias sesiones propias abiertas).
+    session_id_actual = _leer_session_id_del_token(token)
+    session_id_guardado = perfil.get("sesion_activa_id")
+    if session_id_actual and session_id_guardado and session_id_guardado != session_id_actual:
+        raise HTTPException(
+            401,
+            "Tu sesión se cerró porque esta cuenta inició sesión en otro dispositivo."
+        )
 
     return CurrentUser(
         user_id=user_id, token=token, email=email,
