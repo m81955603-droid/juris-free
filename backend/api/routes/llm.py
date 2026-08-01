@@ -195,10 +195,12 @@ async def chat_stream(req: ChatRequest, user: CurrentUser = Depends(get_current_
                 else:
                     content, tokens = await call_openai(p, req.messages, system, req.maxTokens, custom_keys)
 
-                # Simular streaming dividiendo la respuesta en chunks
+                # Simular streaming en lotes de palabras (8x mas rapido que palabra por palabra)
                 words = content.split(' ')
-                for i, word in enumerate(words):
-                    chunk = word + (' ' if i < len(words) - 1 else '')
+                CHUNK_SIZE = 8
+                for i in range(0, len(words), CHUNK_SIZE):
+                    lote = words[i:i + CHUNK_SIZE]
+                    chunk = ' '.join(lote) + (' ' if i + CHUNK_SIZE < len(words) else '')
                     data = json.dumps({"chunk": chunk, "done": False, "provider": p["name"]})
                     yield f"data: {data}\n\n"
                     await asyncio.sleep(0.02)
