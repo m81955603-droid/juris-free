@@ -13,7 +13,7 @@ export class LlmProxyService {
   chat(messages: LlmMessage[], systemPrompt?: string, preferredProvider?: string): Observable<LlmResponse> {
     return this.http.post<LlmResponse>(
       environment.apiUrl + '/api/v1/llm/chat',
-      { messages, system: systemPrompt, maxTokens: 65536 },
+      { messages, system: systemPrompt, maxTokens: 4096 },
       { headers: new HttpHeaders({ 'Content-Type': 'application/json' }) }
     );
   }

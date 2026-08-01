@@ -10,20 +10,26 @@ import { LegalDocument, Conversation, ChatMessage } from '../models/legal.models
 export class SupabaseService {
   private http = inject(HttpClient);
   private client: SupabaseClient;
-  private userSubject    = new BehaviorSubject<User | null>(null);
+private userSubject    = new BehaviorSubject<User | null>(null);
   private sessionSubject = new BehaviorSubject<Session | null>(null);
 
   readonly currentUser$    = this.userSubject.asObservable();
   readonly session$        = this.sessionSubject.asObservable();
   readonly isAuthenticated$ = this.currentUser$.pipe(map(u => !!u));
 
+  private sessionReadyResolve!: () => void;
+  readonly sessionReady: Promise<void> = new Promise(resolve => {
+    this.sessionReadyResolve = resolve;
+  });
+
   constructor() {
     this.client = createClient(environment.supabaseUrl, environment.supabaseAnonKey, {
       auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
     });
-    this.client.auth.onAuthStateChange((_event, session) => {
+    this.client.auth.getSession().then(({ data: { session } }) => {
       this.sessionSubject.next(session);
       this.userSubject.next(session?.user ?? null);
+      this.sessionReadyResolve();
     });
     this.client.auth.getSession().then(({ data: { session } }) => {
       this.sessionSubject.next(session);
