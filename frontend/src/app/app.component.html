@@ -53,16 +53,26 @@
       }
     </nav>
 
-    @if (!sidebarCollapsed()) {
-      <div class="sidebar-footer">
-        <div class="status-dot"></div>
-        <span class="status-text">Sistema activo</span>
-      </div>
-      @if ((profileEstado$ | async)?.en_prueba) {
-        <div class="trial-footer">
-          ⏳ Prueba: {{ (profileEstado$ | async)?.minutos_restantes }} min
+    <div class="sidebar-footer">
+      @if (!sidebarCollapsed()) {
+        <div class="status-row">
+          <div class="status-dot"></div>
+          <span class="status-text">Sistema activo</span>
         </div>
       }
+      <button class="btn-logout" (click)="cerrarSesion()" title="Cerrar sesión">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+        </svg>
+        @if (!sidebarCollapsed()) {
+          <span>Cerrar sesión</span>
+        }
+      </button>
+    </div>
+    @if ((profileEstado$ | async)?.en_prueba && !sidebarCollapsed()) {
+      <div class="trial-footer">
+        ⏳ Prueba: {{ (profileEstado$ | async)?.minutos_restantes }} min
+      </div>
     }
   </aside>
 

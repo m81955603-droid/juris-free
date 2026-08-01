@@ -127,6 +127,11 @@
   padding: 14px 16px;
   border-top: 1px solid rgba(255,255,255,.06);
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sidebar-footer .status-row {
+  display: flex;
   align-items: center;
   gap: 8px;
 }
@@ -155,6 +160,38 @@
   margin: 0 16px 12px;
   border-radius: 6px;
   text-align: center;
+}
+.trial-footer {
+  font-size: .68rem;
+  color: #f5c563;
+  background: rgba(245,197,99,.1);
+  padding: 6px 10px;
+  margin: 0 16px 12px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.btn-logout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  color: rgba(255,255,255,.5);
+  font-size: .78rem;
+  cursor: pointer;
+  transition: .15s;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  svg { width: 16px; height: 16px; flex-shrink: 0; }
+  &:hover {
+    background: rgba(184,135,42,.12);
+    border-color: rgba(184,135,42,.3);
+    color: var(--gold-lt);
+  }
 }
 
 .main-content {

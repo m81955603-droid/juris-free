@@ -4,6 +4,9 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { map } from 'rxjs/operators';
 import { ProfileService } from './core/services/profile.service';
+import { SupabaseService } from './core/services/supabase.service';
+import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -15,6 +18,8 @@ import { ProfileService } from './core/services/profile.service';
 export class AppComponent implements OnInit {
   private http = inject(HttpClient);
   private profile = inject(ProfileService);
+  private supabase = inject(SupabaseService);
+  private router = inject(Router);
   sidebarCollapsed = signal(false);
 
   esAdmin$ = this.profile.estado$.pipe(map(e => e?.rol === 'admin'));
@@ -51,5 +56,10 @@ export class AppComponent implements OnInit {
 
   private pingBackend() {
     this.http.get('https://juris-free-backend.onrender.com/health').subscribe();
+  }
+
+  async cerrarSesion() {
+    await firstValueFrom(this.supabase.signOut());
+    this.router.navigateByUrl('/login');
   }
 }
